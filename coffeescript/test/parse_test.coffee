@@ -10,7 +10,11 @@ module.exports =
 
   label_line_mapping: (exit, assert) ->
     program = new Program
-    program.load_from_file __dirname + '/fixtures/parse.dasm'
+    program.load """
+      :foo set a, baz
+      :bar
+      :baz set a, 0
+      """
     assert.equal program.lines.length, 3
     [l1, l2, l3] = program.lines
     assert.eql program.labels, {foo:l1, bar:l3, baz:l3}
