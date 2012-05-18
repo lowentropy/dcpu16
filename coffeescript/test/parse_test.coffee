@@ -91,3 +91,5 @@ module.exports =
   literal_max: (exit, assert) ->
     compiles assert, "set a, 30", [0xfc01]
 
+  jsr: (exit, assert) ->
+    compiles assert, ":loop jsr loop", [0x7c20, 0]
