@@ -1,16 +1,17 @@
 emu = null
 
 rnd = (x) ->
-  if x < 0 then Math.ceil(x) else Math.floor(x)
+  Math.floor(x) # if x < 0 then Math.ceil(x) else Math.floor(x)
 
 signed = (x) ->
   if x > 0x7fff
-    0x10000 - x
+    x - 0x10000
   else
     x
 
 module.exports =
-  init: (emu) ->
+  init: (e) ->
+    emu = e
   
   set: (b, a) ->
     emu.cycles 1
@@ -24,7 +25,7 @@ module.exports =
   sub: (b, a) ->
     emu.cycles 2
     b.set(dif = b.get() - a.get())
-    emu.ex.set(if sum < 0 then 0xffff else 0)
+    emu.ex.set(if dif < 0 then 0xffff else 0)
   
   mul: (b, a) ->
     emu.cycles 2
@@ -135,7 +136,7 @@ module.exports =
   sbx: (b, a) ->
     emu.cycles 3
     b.set(dif = b.get() - a.get() + emu.ex.get())
-    emu.ex.set(if sum < 0 then 0xffff else 0)
+    emu.ex.set(if dif < 0 then 0xffff else 0)
   
   sti: (b, a) ->
     emu.cycles 2
@@ -151,7 +152,7 @@ module.exports =
   
   jsr: (a) ->
     emu.cycles 3
-    emu.push emu.pc.get() + 1
+    emu.push emu.pc.get()
     emu.pc.set a.get()
   
   int: (a) ->

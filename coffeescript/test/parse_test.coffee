@@ -93,3 +93,12 @@ module.exports =
 
   jsr: (exit, assert) ->
     compiles assert, ":loop jsr loop", [0x7c20, 0]
+
+  iaq: (exit, assert) ->
+    compiles assert, "iaq [2+A]", [0x4180, 2]
+
+  hwi: (exit, assert) ->
+    compiles assert, "hWi A", [0x0240]
+  
+  neg_set: (exit, assert) ->
+    compiles assert, "set a, -3", [0x7c01, 0xfffd]

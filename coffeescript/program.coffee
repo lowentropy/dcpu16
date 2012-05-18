@@ -177,7 +177,7 @@ class Value
       @type = 'peek'
     else if m = @raw.match /^pick\s+(.*)/i
       @type = 'pick'
-      @next = parseInt m[1]
+      @next = m[1]
     else if m = @raw.match /^\[(.*)\]$/
       @identify_addr m[1].trim()
     else if @raw.match /^[abcxyzij]$/i
@@ -188,13 +188,12 @@ class Value
   
   identify_const: ->
     num = parseInt @raw
-    if (@pos == 'a') && ((num == 0) || (num && num < 31))
+    if (@pos == 'a') && ((num == 0) || (num && -2 < num < 31))
       @type = 'literal'
       @literal = num
     else
       @type = 'word'
       @next = @raw
-  
   identify_addr: (raw) ->
     if raw.indexOf('+') >= 0
       [offset, reg] = raw.split '+'
@@ -232,6 +231,6 @@ class Value
   next_word: ->
     num = parseInt(@next)
     if num || (num == 0)
-      num
+      num & 0xffff
     else
       @op.line.program.resolve_label @next
