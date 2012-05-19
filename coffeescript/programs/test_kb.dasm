@@ -1,0 +1,121 @@
+set pc, main
+
+; miscellaneous constants
+:num_devices dat 2
+
+; constants identifying the hardware ids, messages, and indices of known devices
+:hardware_start
+
+:keyboard_index    dat 0xffff
+:keyboard_message  dat 1
+:keybaord_msg_cmd  dat 3
+:keyboard_hwid     dat 0x30CF, 0x7406
+
+:clock_index       dat 0xffff
+:clock_message     dat 2
+:clock_msg_cmd     dat 2
+:clock_hwid        dat 0x12D0, 0xB402
+
+:hardware_end
+
+
+
+; start of main program
+:main
+  jsr discover_hardware
+  ;jsr report_hardware
+  jsr program_hardware
+  ias interrupt
+  set a, 1000
+  jsr set_timer
+  set pc, stall
+  ;set pc, halt
+
+; assign messages to hardware for interrupts
+:program_hardware
+  set j, hardware_start
+  :ph_loop
+    ife [j], 0xffff
+      set pc, ph_loop_end
+    set a, [2+j]
+    set b, [1+j]
+    hwi [j]
+    :ph_loop_end
+      add j, 5
+      ifl j, hardware_end
+        set pc, ph_loop
+  set pc, pop
+
+; route an interrupt
+:interrupt
+  ife a, [keyboard_message]
+    set pc, keyboard_interrupt
+  ife a, [clock_message]
+    set pc, clock_interrupt
+  set pc, unknown_interrupt
+  
+; handle keyboard input
+:keyboard_interrupt
+  set a, 1
+  hwi [keyboard_index]
+  ife c, 0
+    rfi 0
+  print c
+  set pc, keyboard_interrupt
+
+; handle a clock interrupt
+:clock_interrupt
+  print 0xffff ; TODO
+  rfi 0
+
+; we have no idea what this interrupt is
+:unknown_interrupt
+  ; TODO
+  rfi 0
+
+; set the clock; A contains pause in milliseconds
+:set_timer
+  set b, a
+  mul b, 60
+  div b, 1000
+  set a, 0
+  hwi [clock_index]
+  set pc, pop
+
+; report on hardware indices!
+:report_hardware
+  print [keyboard_index]
+  print [clock_index]
+  set pc, pop
+
+; fill out the hardware indices
+:discover_hardware
+  hwn i
+  :dh_loop
+    sub i, 1
+    hwq i
+    jsr search_for_device
+    ifn i, 0
+      set pc, dh_loop
+  set pc, pop
+
+; find out what device we have
+:search_for_device
+  set j, hardware_start
+  :sfd_loop
+    ife b, [3+j]
+      ife a, [4+j]
+        set pc, sfd_assign
+    add j, 5
+    ifl j, hardware_end
+      set pc, sfd_loop
+  set pc, pop
+  :sfd_assign
+    set [j], i
+    set pc, pop
+
+; jump here to hang indefinitely
+:stall set pc, stall
+
+; jump here to end the program
+:halt dat 0

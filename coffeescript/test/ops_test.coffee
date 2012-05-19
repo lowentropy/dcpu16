@@ -206,3 +206,7 @@ module.exports =
   
   hwi: (e,a) ->
     run a, "hwi 0", a: 1, b: 2, c: 3, x: 4, y: 5, z: 6, i: 7, j: 8
+  
+  # TODO: remove me!
+  print: (e,a) ->
+    run a, "print 216", {}

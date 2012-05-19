@@ -19,9 +19,10 @@ module.exports = class Program
     @compile()
   
   split_lines: ->
-    @lines = for line, index in @raw.split "\n"
-      new Line this, line, index+1 if line.length
-    @lines.pop() unless @lines[@lines.length - 1]
+    @lines = []
+    for line, index in @raw.split "\n"
+      @lines.push(new Line this, line, index+1) if line.length
+    # @lines.pop() unless @lines[@lines.length - 1]
   
   record_labels: ->
     labels = []

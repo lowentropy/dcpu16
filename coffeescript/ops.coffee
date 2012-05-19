@@ -172,6 +172,7 @@ module.exports =
     emu.disable_iq()
     a.set emu.pop()
     emu.pc.set emu.pop()
+    emu.recent_rfi = true
   
   iaq: (a) ->
     emu.cycles 2
@@ -191,3 +192,8 @@ module.exports =
   hwi: (a) ->
     emu.cycles 4
     emu.send_interrupt a.get()
+  
+  # TODO: REMOVE ME!
+  print: (a) ->
+    emu.cycles 4
+    console.log "DCPU: #{a.get()}"

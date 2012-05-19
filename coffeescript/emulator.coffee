@@ -6,18 +6,21 @@ module.exports = class Emulator
     for reg in 'a b c x y z i j ia sp pc ex'.split(' ')
       @[reg] = new Register reg
     @registers = [@a, @b, @c, @x, @y, @z, @i, @j]
-    @mem = (0 for i in [0x0000..0xffff])
+    @_mem = (0 for i in [0x0000..0xffff])
     @devices = []
     ops.init this
-    @max_steps = 100000
+    # @max_steps = 100000
     @real_time = false
     @iq_enabled = false
+    @total_cycles = 0
+    @queue = []
   
   load_program: (program) ->
-    @mem[i] = word for word, i in program.to_bin()
+    @_mem[i] = word for word, i in program.to_bin()
     
   cycles: (n) ->
     @_cycles += n
+    @total_cycles += n
   
   send_interrupt: (hw_idx) ->
     @devices[hw_idx]?.send_interrupt()
@@ -26,12 +29,25 @@ module.exports = class Emulator
     @devices.push device
   
   trigger_interrupt: (message) ->
+    if @iq_enabled
+      @queue_interrupt message
+      return
     if 0 != (ia = @ia.get())
       @enable_iq()
       @push @pc.get()
       @push @a.get()
       @pc.set ia
       @a.set message
+  
+  queue_interrupt: (message) ->
+    if @queue.length >= 256
+      @catch_fire()
+    @queue.push message
+
+  catch_fire: ->
+    console.log ">>> DCPU ON FIRE! <<<" unless @on_fire
+    @on_fire = true
+    @halt()
     
   get_device_info: (hw_idx) ->
     if device = @devices[hw_idx]
@@ -49,10 +65,10 @@ module.exports = class Emulator
     @mem_set addr, value
   
   mem_set: (addr, value) ->
-    @mem[addr & 0xffff] = value & 0xffff
+    @_mem[addr & 0xffff] = value & 0xffff
   
   mem_get: (addr) ->
-    @mem[addr & 0xffff]
+    @_mem[addr & 0xffff]
   
   mem: (addr) ->
     get: => @mem_get(addr)
@@ -94,24 +110,30 @@ module.exports = class Emulator
     @read_args()
     @perform()
     @steps++
-    @halt() if @steps > @max_steps
-    @pause() if @real_time
+    return @halt() if @total_steps > @max_steps
+    if @queue.length && !@iq_enabled && !@recent_rfi
+      @trigger_interrupt @queue.shift()
+    @recent_rfi = false
+    setTimeout (=> @step()), @pause() unless @_halt
   
   pause: ->
+    0
     # TODO: wait for correct ms...
   
   halt: ->
     @_halt = true
+    device.halt() for device in @devices
+    @callback?()
   
   clear: ->
     @steps = 0
   
-  run: ->
+  run: (@callback) ->
     @clear()
-    @step() until @_halt
+    @step()
   
   dump: ->
-    for value, addr in @mem
+    for value, addr in @_mem
       continue unless value
       console.log "#{addr}: #{value}"
   
@@ -151,6 +173,7 @@ class Operand
       addr = word + @emu.registers[@code - 0x10].get()
       @emu.mem addr
     else if @code == 0x18
+      @emu.cycles 1
       if @pos == 'a'
         addr = @emu.sp.get()
         @emu.sp.set @emu.sp.get() + 1
@@ -162,6 +185,7 @@ class Operand
     else if @code == 0x19
       @emu.mem @emu.sp.get()
     else if @code == 0x1a
+      @emu.cycles 1
       offset = @emu.get_word()
       @emu.mem(@emu.sp.get() + offset)
     else if @code == 0x1b
@@ -171,9 +195,11 @@ class Operand
     else if @code == 0x1d
       @emu.ex
     else if @code == 0x1e
+      @emu.cycles 1
       word = @emu.get_word()
       @emu.mem word
     else if @code == 0x1f
+      @emu.cycles 1
       word = @emu.get_word()
       get: -> word
       set: ->

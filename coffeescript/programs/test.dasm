@@ -1,0 +1,49 @@
+set pc, start
+
+:max_ticks dat 50
+:tick_ms dat 100
+
+:start ; main
+jsr setup
+set pc, loop
+
+:setup ; get ready
+set i, 0
+ias handle_interrupt
+jsr enable_interrupts
+jsr start_clock
+set pc, pop
+
+:enable_interrupts ; turn interrupts on in clock
+set b, 1
+set a, 2
+hwi 0
+set pc, pop
+
+:start_clock ; start clock ticking once a second
+set b, [tick_ms]
+mul b, 60
+div b, 1000
+ife b, 0
+  set pc, fail
+set a, 0
+hwi 0
+set pc, pop
+
+:loop ; loop until 5 ticks
+ifl i, [max_ticks]
+  set pc, loop
+set pc, halt
+
+:handle_interrupt ; handle_interrupts
+ife a, 1 ; clock tick
+  jsr clock_tick
+rfi 0
+
+:clock_tick
+add i, 1
+print i
+set pc, pop
+
+:fail print 216
+:halt dat 0 ; program is done!

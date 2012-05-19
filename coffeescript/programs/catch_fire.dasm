@@ -1,0 +1,9 @@
+:start
+  ias int       ; set interrupt handler address
+  int 1         ; trigger first interrupt
+:wait
+  set pc, wait  ; wait for the explosion...
+:int
+  int 1         ; each interrupt
+  int 1         ; triggers two more
+  rfi 0
