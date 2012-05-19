@@ -84,6 +84,8 @@ module.exports = class Emulator
     @cycles 1
     @advance()
     @read_args()
+    # FIXME: there's a bug here; we want to read the args but NOT to evaluate things like POP...
+    # TODO: express this bug in a test, then fix it...
     @skip() if @instruction_is_if()
 
   advance: ->
