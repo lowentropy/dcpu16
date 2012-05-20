@@ -1,0 +1,22 @@
+{
+  "name": "dcpu16",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">= 0.6.x"
+  },
+  "author": "Nathan Matthews",
+  "scripts": {
+    "start": "node server/entry.js"
+  },
+  "dependencies": {
+    "coffee-script": "1.2",
+    "connect": "1.8",
+    "underscore": "1.1",
+    "express": "2.5",
+    "stylus": "0.22",
+    "mongodb": "0.9",
+    "browserify": "https://github.com/lowentropy/node-browserify/tarball/master",
+    "path": "0.4",
+    "coffeekup": "0.3"
+  }
+}
