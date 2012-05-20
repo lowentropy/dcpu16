@@ -74,7 +74,6 @@ set pc, main
   ife C, 0
     rfi 0
   jsr keypress
-  print pc
   ifn B, 0
     jsr append_line_buffer
   ife C, 0x11
@@ -90,24 +89,22 @@ set pc, main
 
 ; append the pressed char to the line buffer
 :append_line_buffer
-  print sp
   set A, [line_buf_ptr]
-  print sp
   ife A, line_buffer_end
     set PC, pop
-  print sp
   set [A], C
-  print sp
   set [1+A], 0
-  print sp
   add [line_buf_ptr], 1
-  print sp
   set PC, pop
 
 ; the <enter> key was pressed, so do a thing
 :handle_enter
   ; if the user enters 'quit', then quit...
-  set a, [line_buf_ptr]
+  set a, line_buffer
+  print [0+a]
+  print [1+a]
+  print [2+a]
+  print [3+a]
   ife [0+a], 0x71
   ife [1+a], 0x75
   ife [2+a], 0x69

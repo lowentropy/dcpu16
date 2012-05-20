@@ -5,7 +5,6 @@ compiles = (assert, str, bin) ->
   program.load str
   assert.eql program.to_bin(), bin
 
-
 module.exports =
 
   label_line_mapping: (exit, assert) ->
@@ -24,11 +23,11 @@ module.exports =
     assert.eql program.to_bin(), [0x7c01, 2, 0x8401]
   
   dat: (exit, assert) ->
-    compiles assert, """
-          set pc, bar
-          dat 0, 0, 0
-          :foo dat "foo\\n", 10, 0
-          :bar set foo, bar""",
+    program = compiles assert, """
+          set pc, bar               ; SET, BAR            ; 0-1
+          dat 0, 0, 0               ; 0, 0, 0             ; 2-4
+          :foo dat "foo\\n", 10, 0  ; f, o, o, nl, 10, 0  ; 5-10  (foo = 5)
+          :bar set foo, bar""",    #; SET, BAR, FOO       ; 11-13 (bar = 11)
       [0x7f81, 11, 0, 0, 0, 102, 111, 111, 10, 10, 0, 0x7fe1, 11, 5]
   
   register: (exit, assert) ->
@@ -102,3 +101,6 @@ module.exports =
   
   neg_set: (exit, assert) ->
     compiles assert, "set a, -3", [0x7c01, 0xfffd]
+
+  dat_label: (exit, assert) ->
+    compiles assert, "dat foo\ndat 216\n:foo", [2,216]

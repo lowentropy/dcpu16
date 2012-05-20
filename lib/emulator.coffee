@@ -2,7 +2,8 @@ consts = require './consts'
 ops = require './ops'
 
 module.exports = class Emulator
-  constructor: ->
+  constructor: (opts={}) ->
+    {@sync} = opts
     for reg in 'a b c x y z i j ia sp pc ex'.split(' ')
       @[reg] = new Register reg
     @registers = [@a, @b, @c, @x, @y, @z, @i, @j]
@@ -116,7 +117,7 @@ module.exports = class Emulator
     if @queue.length && !@iq_enabled && !@recent_rfi
       @trigger_interrupt @queue.shift()
     @recent_rfi = false
-    setTimeout (=> @step()), @pause() unless @_halt
+    setTimeout (=> @step()), @pause() unless @_halt || @sync
   
   pause: ->
     0
@@ -132,7 +133,10 @@ module.exports = class Emulator
   
   run: (@callback) ->
     @clear()
-    @step()
+    if @sync
+      @step() until @_halt
+    else
+      @step()
   
   dump: ->
     for value, addr in @_mem
@@ -146,6 +150,7 @@ module.exports = class Emulator
 
   perform: ->
     op = @inst & 0x1f
+    @_a.get()
     if op == 0
       fun = consts.extended[(@inst >> 5) & 0x1f].toLowerCase()
       ops[fun]?(@_a)
@@ -156,8 +161,8 @@ module.exports = class Emulator
 
 class Operand
   constructor: (@emu, @code, @pos) ->
-    @loc()
-    @get() if @pos == 'a'
+    # @loc()
+    @get_word()
   
   get: ->
     @cached ?= @loc().get()
@@ -165,14 +170,23 @@ class Operand
   set: (value) ->
     @loc().set(value)
   
+  get_word: ->
+    if @needs_word()
+      @word = @emu.get_word()
+  
+  needs_word: ->
+    (0x10 <= @code < 0x18) ||
+    (@code == 0x1a) ||
+    (@code == 0x1e) ||
+    (@code == 0x1f)
+  
   loc: ->
     @_loc ?= if @code < 0x08
       @emu.registers[@code]
     else if @code < 0x10
       @emu.mem @emu.registers[@code - 0x08].get()
     else if @code < 0x18
-      word = @emu.get_word()
-      addr = word + @emu.registers[@code - 0x10].get()
+      addr = @word + @emu.registers[@code - 0x10].get()
       @emu.mem addr
     else if @code == 0x18
       @emu.cycles 1
@@ -188,8 +202,7 @@ class Operand
       @emu.mem @emu.sp.get()
     else if @code == 0x1a
       @emu.cycles 1
-      offset = @emu.get_word()
-      @emu.mem(@emu.sp.get() + offset)
+      @emu.mem(@emu.sp.get() + @word)
     else if @code == 0x1b
       @emu.sp
     else if @code == 0x1c
@@ -198,12 +211,10 @@ class Operand
       @emu.ex
     else if @code == 0x1e
       @emu.cycles 1
-      word = @emu.get_word()
-      @emu.mem word
+      @emu.mem @word
     else if @code == 0x1f
       @emu.cycles 1
-      word = @emu.get_word()
-      get: -> word
+      get: => @word
       set: ->
     else
       get: => (@code - 0x21) & 0xffff

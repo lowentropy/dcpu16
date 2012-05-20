@@ -2,26 +2,23 @@ Program = require '../program'
 Emulator = require '../emulator'
 DummyDevice = require '../devices/dummy'
 consts = require '../consts'
-
-emu = null
+_assert = require 'assert'
 
 run = (assert, str, values) ->
+  assert ?= _assert
   emu = new Emulator
-  prog = new Program
+  prog = new Program sync: true
   prog.load str
   emu.load_program prog
   emu.attach_device new DummyDevice(emu)
-  # console.log str
-  # console.log '--------'
-  emu.run()
-  mem = values.mem ? {}
-  delete values.mem
-  for name, value of values
-    assert.eql emu[name].get(), value, "Expected #{name} to be #{value}, but got #{emu[name].get()}"
-  for addr, value of mem
-    actual = emu.mem_get(parseInt(addr))
-    assert.eql actual, value, "Expected mem #{addr} to be #{value}, but got #{actual}"
-  # console.log ''
+  emu.run ->
+    mem = values.mem ? {}
+    delete values.mem
+    for name, value of values
+      assert.eql emu[name].get(), value, "Expected #{name} to be #{value}, but got #{emu[name].get()}"
+    for addr, value of mem
+      actual = emu.mem_get(parseInt(addr))
+      assert.eql actual, value, "Expected mem #{addr} to be #{value}, but got #{actual}"
 
 is_yes = (assert, str) ->
   run assert, "set a, 3\n#{str}\nset a, 5", a: 5
@@ -188,9 +185,7 @@ module.exports =
     run a, "int 13", a: 0, ia: 0, pc: 2, sp: 0
   
   int_with_ia: (e,a) ->
-    a.eql false, emu.iq_enabled
     run a, "set a, 7\nias 0x2501\nint 13", a: 13, pc: 0x2502, sp: 0xfffe, mem: {0xffff: 4, 0xfffe: 7}
-    a.eql true, emu.iq_enabled
 
   ias_iag: (e,a) ->
     run a, "ias 412\niag a", a: 412
@@ -210,3 +205,7 @@ module.exports =
   # TODO: remove me!
   print: (e,a) ->
     run a, "print 216", {}
+
+  conditional_pop: (e,a) ->
+    run a, "ife 1, 2\nset a, pop", sp: 0
+

@@ -15,3 +15,5 @@ module.exports = class DummyDevice
     @emu.z.set 6
     @emu.i.set 7
     @emu.j.set 8
+
+  halt: ->

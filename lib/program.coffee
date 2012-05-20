@@ -31,6 +31,10 @@ module.exports = class Program
       continue if line.empty()
       @labels[label] = line for label in labels
       labels = []
+    @end_labels = labels
+  
+  has_label: (label) ->
+    @labels[label]?
   
   resolve_label: (label) ->
     @labels[label]?.addr ? throw new Error "Unknown label: #{label}"
@@ -44,6 +48,8 @@ module.exports = class Program
       line.set_addr addr
       addr += line.size()
     @size = addr
+    for label in @end_labels
+      @labels[label] = {addr: @size}
   
   compile: ->
     @bin = (0 for i in [1..@size])
@@ -88,7 +94,7 @@ class Line
     @contents = if @empty()
       new Noop
     else if /dat/i.test @op
-      new Dat @parts
+      new Dat this, @parts
     else
       new Operation this, @op, @parts
   
@@ -104,14 +110,15 @@ class Noop
 
 
 class Dat
-  constructor: (@parts) ->
-    @extract_words()
-  
+  constructor: (@line, @parts) ->
+    
   extract_words: ->
     @words = []
     for part in @parts
       if /^".*"$/.test part
         @append_string eval(part)
+      else if @line.program.has_label part
+        @words.push @line.program.resolve_label(part)
       else
         @words.push parseInt(part)
 
@@ -119,10 +126,20 @@ class Dat
     for i in [0...str.length]
       @words.push str.charCodeAt(i)
   
+  extract_size: ->
+    @_size = 0
+    for part in @parts
+      if /^".*"$/.test part
+        @_size += eval(part).length
+      else
+        @_size++
+  
   size: ->
-    @words.length
+    @extract_size() unless @_size?
+    @_size
   
   to_bin: ->
+    @extract_words() unless @words?
     @words
 
 
@@ -195,6 +212,7 @@ class Value
     else
       @type = 'word'
       @next = @raw
+      
   identify_addr: (raw) ->
     if raw.indexOf('+') >= 0
       [offset, reg] = raw.split '+'
