@@ -6,12 +6,14 @@ html lang: 'en', ->
     meta name: 'viewport', content: 'width=device-width, initial-scale=1.0'
     title 'DCPU-16 Testbed'
     
+    link rel: 'shortcut icon', href: '/images/favicon.ico'
+
     link rel: 'stylesheet', href: '/bootstrap/css/bootstrap.css'
     style 'body { padding-top: 60px; }'
     link rel: 'stylesheet', href: '/bootstrap/css/bootstrap-responsive.css'
-    link rel: 'shortcut icon', href: '/images/favicon.ico'
     
-    link rel: 'stylesheet', href: '/lem.css'
+    text css('prettify')
+    text css('lem')
 
     body ->
       div class: 'navbar navbar-fixed-top', ->
@@ -27,7 +29,7 @@ html lang: 'en', ->
           div class: 'span6', ->
             h1 'Code goes here'
             p "Here's an inline <code>code</code> snippet."
-            pre class: 'prettyprint linenums', -> '''
+            pre class: 'prettyprint linenums lang-dasm', -> '''
               set pc, main
 
               ; active memory
@@ -76,17 +78,17 @@ html lang: 'en', ->
               :program_hardware
                 set j, hardware_start
                 :ph_loop
-                  ife [j], 0xFFFF
+                  ife [j], 0xFFFF      ; abort if hw not attached
                     set pc, ph_loop_end
-                  ife [2+j], 0
+                  ife [2+j], 0         ; abort if hw doesn't need programming
                     set pc, ph_loop_end
-                  set a, [2+j]
-                  set b, [1+j]
-                  hwi [j]
+                  set a, [2+j]         ; set interrupt programming command
+                  set b, [1+j]         ; set interrupt message to program
+                  hwi [j]              ; program hardware with message
                   :ph_loop_end
-                    add j, 5
+                    add j, 5           ; move to next hardware
                     ifl j, hardware_end
-                      set pc, ph_loop
+                      set pc, ph_loop  ; stop at end of hardware list
                 set pc, pop
 
               ; route an interrupt
@@ -99,16 +101,16 @@ html lang: 'en', ->
 
               ; handle keyboard input
               :keyboard_interrupt
-                set A, 1
-                hwi [keyboard_index]
-                ife C, 0
-                  rfi 0
-                jsr keypress
-                ifn B, 0
-                  jsr append_line_buffer
-                ife C, 0x11
-                  jsr handle_enter
-                set pc, keyboard_interrupt
+                set A, 1                    ; get next key from keyboard
+                hwi [keyboard_index]        
+                ife C, 0                    ; abort if no key pressed
+                  rfi 0                     
+                jsr keypress                ; determine if we should append to buffer
+                ifn B, 0                    
+                  jsr append_line_buffer    ; and then do so.
+                ife C, 0x11                 ; if enter was pressed
+                  jsr handle_enter          ; call another handler
+                set pc, keyboard_interrupt  ; keep checking for pressed keys
 
               ; handle keypress; C is character; return: B is whether to append it to buffer
               :keypress
@@ -119,35 +121,30 @@ html lang: 'en', ->
 
               ; append the pressed char to the line buffer
               :append_line_buffer
-                set A, [line_buf_ptr]
-                ife A, line_buffer_end
+                set A, [line_buf_ptr]     ; find end of current line
+                ife A, line_buffer_end    ; abort if out of buffer space
                   set PC, pop
-                set [A], C
-                set [1+A], 0
-                add [line_buf_ptr], 1
+                set [A], C                ; record the character
+                set [1+A], 0              ; and a terminating zero
+                add [line_buf_ptr], 1     ; increment the buffer pointer
                 set PC, pop
 
               ; the <enter> key was pressed, so do a thing
               :handle_enter
                 ; if the user enters 'quit', then quit...
-                set a, line_buffer
-                print [0+a]
-                print [1+a]
-                print [2+a]
-                print [3+a]
-                ife [0+a], 0x71
-                ife [1+a], 0x75
-                ife [2+a], 0x69
-                ife [3+a], 0x74
-                set pc, halt
-                ; otherwise just clear the line buffer
-                jsr clear_line_buffer
+                set a, line_buffer        ; start at head of buffer
+                ife [0+a], 0x71           ; q
+                ife [1+a], 0x75           ; u
+                ife [2+a], 0x69           ; i
+                ife [3+a], 0x74           ; t
+                set pc, halt              ; if string matched, halt immediately
+                jsr clear_line_buffer     ; otherwise just clear the line buffer
                 set pc, pop
 
               ; clear the line buffer
               :clear_line_buffer
-                set [line_buf_ptr], line_buffer
-                set [line_buffer], 0
+                set [line_buf_ptr], line_buffer  ; reset pointer to head of buffer
+                set [line_buffer], 0             ; and put the terminating zero there
                 set pc, pop
 
               ; handle a clock interrupt
@@ -162,10 +159,10 @@ html lang: 'en', ->
 
               ; set the clock; A contains pause in milliseconds
               :set_timer
-                set b, a
-                mul b, 60
-                div b, 1000
-                set a, 0
+                set b, a           ; clock will interrupt 60/B times per second,
+                mul b, 60          ; so we want to pass (ms * 60 / 1000) to get
+                div b, 1000        ; a correct interval in ms. NOTE that if ms was
+                set a, 0           ; less than 17, this will disable the clock.
                 hwi [clock_index]
                 set pc, pop
 
@@ -184,35 +181,35 @@ html lang: 'en', ->
 
               ; fill out the hardware indices
               :discover_hardware
-                hwn i
+                hwn i                     ; how many devices are there?
                 :dh_loop
-                  sub i, 1
-                  hwq i
-                  jsr search_for_device
-                  ifn i, 0
+                  sub i, 1                ; starting at device N-1
+                  hwq i                   ; get the device info
+                  jsr search_for_device   ; then match it to known hardware
+                  ifn i, 0                ; loop until done
                     set pc, dh_loop
                 set pc, pop
 
               ; find out what device we have
               :search_for_device
-                set j, hardware_start
+                set j, hardware_start     ; start at first known device
                 :sfd_loop
-                  ife b, [3+j]
-                    ife a, [4+j]
+                  ife b, [3+j]            ; if hardware id matches, then
+                    ife a, [4+j]          ; assign this device
                       set pc, sfd_assign
-                  add j, 5
+                  add j, 5                ; otherwise continue to next hardware entry
                   ifl j, hardware_end
-                    set pc, sfd_loop
+                    set pc, sfd_loop      ; abort at end of hardware list
                 set pc, pop
                 :sfd_assign
-                  set [j], i
-                  set pc, pop
+                  set [j], i              ; assign index to hardware list item
+                  set pc, pop             ; then return from `search_for_device`
 
               ; jump here to hang indefinitely
-              :stall set pc, stall
+              :stall set pc, stall        ; loop forever
 
               ; jump here to end the program
-              :halt dat 0
+              :halt dat 0                 ; 0x0000 is 'reserved for future expansion' :P
 
               :line_buffer
                 dat "                                "
@@ -220,7 +217,7 @@ html lang: 'en', ->
                 dat "                                "
                 dat "                                "
               :line_buffer_end
-              dat 0
+                dat 0
 
               :screen_buffer
                 dat "                                "
@@ -261,5 +258,11 @@ html lang: 'en', ->
             h1 'Debugging goes here'
 
       script src: '/javascripts/vendor/jquery.min.js'
+      script src: '/javascripts/vendor/prettify.js'
+      script src: '/javascripts/vendor/require.min.js'
       script src: '/bootstrap/js/bootstrap.min.js'
-      script src: '/browserify.js'
+      
+      text js('client')
+      text js('lang-dasm')
+      
+      script '$(function() { prettyPrint(); });'

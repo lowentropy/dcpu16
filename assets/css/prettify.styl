@@ -1,0 +1,78 @@
+// ORIGINALS:
+// code_comments = #93a1a1
+// code_literal = #195f91
+// code_punctuation = #93a1a1
+// code_function = #dc322f
+// code_string = #D14
+// code_keyword = #1e347b
+// code_variable = teal
+// code_plain = #48484c
+// code_background = #f7f7f9
+// code_border = #e1e1e8
+// code_shadow #ececf0
+
+code_comments = #BC9458
+code_literal = #A5C261
+code_punctuation = #E6E1DC // ... set to plain...
+code_function = #FFC66D // XXX
+code_string = #A5C261 // XXX
+code_keyword = #CC7833 // XXX
+code_variable = #D0D0FF // XXX
+code_plain = #E6E1DC // XXX
+code_background = #232323 // XXX
+code_border = #e1e1e8
+code_shadow = #ececf0
+code_invalid_fg = #FFFFFF // XXX
+code_invalid_bg = #990000 // XXX
+
+// 12         <key>background</key>
+// 13         <string>#2B2B2B</string>
+// 14         <key>caret</key>
+// 15         <string>#FFFFFF</string>
+// 16         <key>foreground</key>
+// 17         <string>#E6E1DC</string>
+// 18         <key>invisibles</key>
+// 19         <string>#404040</string>
+// 20         <key>lineHighlight</key>
+// 21         <string>#333435</string>
+// 22         <key>selection</key>
+// 23         <string>#5A647EE0</string>
+
+.com
+  color code_comments
+  font-style italic
+.lit, .opn, .clo
+  color code_literal
+.pun
+  color code_punctuation
+.fun
+  color code_function
+.str, .atv
+  color code_string
+.kwd, .linenums .tag
+  color code_keyword
+.typ, .atn, .dec, .var
+  color code_variable
+.pln
+  color code_plain
+
+.prettyprint
+  padding 8px
+  background-color code_background
+  border 1px solid code_border
+
+.prettyprint.linenums
+  -webkit-box-shadow inset 40px 0 0 #fbfbfc, inset 41px 0 0 code_shadow
+     -moz-box-shadow inset 40px 0 0 #fbfbfc, inset 41px 0 0 code_shadow
+          box-shadow inset 40px 0 0 #fbfbfc, inset 41px 0 0 code_shadow
+
+ol.linenums
+  margin 0 0 0 33px
+
+ol.linenums li
+  padding-left 12px
+  color #bebec5
+  line-height 18px
+  // text-shadow 0 1px 0 #fff
+  &.hilite
+    background: #666

@@ -16,8 +16,7 @@
     "express": "2.5",
     "stylus": "0.22",
     "mongodb": "0.9",
-    "browserify": "https://github.com/lowentropy/node-browserify/tarball/master",
-    "path": "0.4",
-    "coffeekup": "0.3"
+    "coffeekup": "0.3",
+    "connect-assets": "2.2"
   }
 }

@@ -1,3 +1,4 @@
+tty = require 'tty'
 Emulator = require '../lib/emulator'
 Program = require '../lib/program'
 GenericClock = require '../lib/devices/clock'
@@ -14,6 +15,11 @@ emu.attach_device clock
 
 kb = new TTYKeyboard emu
 emu.attach_device kb
+
+process.stdin.resume()
+tty.setRawMode true
+process.stdin.on 'keypress', (char, key) =>
+  process.exit() if key?.ctrl && key.name == 'c'
 
 kb.start()
 
