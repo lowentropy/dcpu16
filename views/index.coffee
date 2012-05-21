@@ -237,7 +237,10 @@ html lang: 'en', ->
                 dat "                                "
               :screen_buffer_end
             '''
+
           div class: 'span6', ->
+            h1 'Output goes here'
+            
             div class: 'btn-group', ->
               button class: 'btn btn-primary', ->
                 i class: 'icon-play icon-white'
@@ -251,11 +254,12 @@ html lang: 'en', ->
               button class: 'btn btn-warning', ->
                 i class: 'icon-refresh icon-white'
                 text ' Reset'
+                
             div class: 'monitor', ->
-              canvas class: 'lem'
-        div class: 'row', ->
-          div class: 'span12', ->
+              canvas width: '384', height: '288', class: 'lem'
+
             h1 'Debugging goes here'
 
       script src: '/javascripts/vendor/jquery.min.js'
       script src: '/bootstrap/js/bootstrap.min.js'
+      script src: '/browserify.js'

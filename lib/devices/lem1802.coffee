@@ -19,21 +19,24 @@ module.exports = class LEM1802
   render: ->
     return unless @screen_address
     addr = @screen_address
-    y = -1
     for row in [0...12]
-      y++
-      x = 0
       for col in [0...32]
-       word  = @emu.mem_get addr++
-        f     = (word & 0xf000) >> 12
-        b     = (word & 0x0f00) >> 8
-        blink = (word & 0x0080) >> 7
-        char  = (word & 0x007f)
-        glyph = @char(char)
-        [f,b] = [b,f] if blink && @reverse
-        f = @color f
-        b = @color b
-        @render_glyph glyph, f, b, x++, y
+        @render_cell addr++
+  
+  render_cell: (addr, word) ->
+    base = addr - @screen_address
+    x = base & 0x1f
+    y = base >> 5
+    word ?= @emu.mem_get addr
+    f     = (word & 0xf000) >> 12
+    b     = (word & 0x0f00) >> 8
+    blink = (word & 0x0080) >> 7
+    char  = (word & 0x007f)
+    glyph = @char(char)
+    [f,b] = [b,f] if blink && @reverse
+    f = @color f
+    b = @color b
+    @render_glyph glyph, f, b, x, y
   
   render_glyph: (g, f, b, xb, yb) ->
     x = xb - 1
@@ -69,13 +72,25 @@ module.exports = class LEM1802
       when 3 then @set_border_color()
   
   mem_map_screen: ->
-    @screen_address = @emu.b.get()
+    @emu.remove_mem_trigger @screen_trigger
+    if @screen_address = @emu.b.get()
+      @screen_trigger = @emu.mem_trigger @screen_address, @screen_address+0x180, (addr, word) =>
+        @render_cell addr, word
+    @render()
   
   mem_map_font: ->
-    @font_address = @emu.b.get()
+    @emu.remove_trigger @font_trigger
+    if @font_address = @emu.b.get()
+      @font_trigger = @emu.mem_trigger @font_address, @font_address+0x100, =>
+        @render()
+    @render()
   
   mem_map_palette: ->
-    @palette_address = @emu.b.get()
+    @emu.remove_trigger @palette_trigger
+    if @palette_address = @emu.b.get()
+      @palette_trigger = @emu.mem_trigger @palette_address, @palette_address+0x10, =>
+        @render()
+    @render()
   
   set_border_color: ->
     @border_color = @emu.b.get() & 0xF
