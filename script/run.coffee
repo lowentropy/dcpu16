@@ -1,7 +1,7 @@
-Emulator = require './emulator'
-Program = require './program'
-GenericClock = require './devices/clock'
-TTYKeyboard = require './devices/keyboard'
+Emulator = require '../lib/emulator'
+Program = require '../lib/program'
+GenericClock = require '../lib/devices/clock'
+TTYKeyboard = require '../lib/devices/keyboard'
 
 emu = new Emulator
 program = new Program

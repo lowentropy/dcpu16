@@ -6,7 +6,8 @@
   },
   "author": "Nathan Matthews",
   "scripts": {
-    "start": "node server/entry.js"
+    "start": "node server/entry.js",
+    "run": "coffee script/run"
   },
   "dependencies": {
     "coffee-script": "1.2",

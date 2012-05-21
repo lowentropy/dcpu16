@@ -1,5 +1,8 @@
 consts = require './consts'
 ops = require './ops'
+Register = require './register'
+Operand = require './operand'
+
 
 module.exports = class Emulator
   constructor: (opts={}) ->
@@ -14,6 +17,10 @@ module.exports = class Emulator
     @real_time = false
     @iq_enabled = false
     @total_cycles = 0
+    @_a = new Operand this, 'a'
+    @_b = new Operand this, 'b'
+    @_next_trigger = 1
+    @mem_triggers = {}
     @queue = []
   
   load_program: (program) ->
@@ -66,7 +73,11 @@ module.exports = class Emulator
     @mem_set addr, value
   
   mem_set: (addr, value) ->
-    @_mem[addr & 0xffff] = value & 0xffff
+    addr &= 0xffff
+    value &= 0xffff
+    @_mem[addr] = value
+    for key, {from, to, callback} of @mem_triggers
+      callback(addr, value) if from <= addr < to
   
   mem_get: (addr) ->
     @_mem[addr & 0xffff]
@@ -144,9 +155,9 @@ module.exports = class Emulator
       console.log "#{addr}: #{value}"
   
   read_args: ->
-    @_a = new Operand this, (@inst >> 10) & 0x3f, 'a'
+    @_a.reset (@inst >> 10) & 0x3f
     if (@inst & 0x1f) != 0
-      @_b = new Operand this, (@inst >> 5) & 0x1f, 'b'
+      @_b.reset (@inst >> 5) & 0x1f
 
   perform: ->
     op = @inst & 0x1f
@@ -158,75 +169,11 @@ module.exports = class Emulator
       fun = consts.basic[op].toLowerCase()
       ops[fun]?(@_b, @_a)
 
-
-class Operand
-  constructor: (@emu, @code, @pos) ->
-    # @loc()
-    @get_word()
+  mem_trigger: (from, to, callback) ->
+    key = @_next_trigger++
+    @mem_triggers[key] = {from, to, callback}
+    key
   
-  get: ->
-    @cached ?= @loc().get()
+  remove_mem_trigger: (key) ->
+    delete @mem_triggers[key]
   
-  set: (value) ->
-    @loc().set(value)
-  
-  get_word: ->
-    if @needs_word()
-      @word = @emu.get_word()
-  
-  needs_word: ->
-    (0x10 <= @code < 0x18) ||
-    (@code == 0x1a) ||
-    (@code == 0x1e) ||
-    (@code == 0x1f)
-  
-  loc: ->
-    @_loc ?= if @code < 0x08
-      @emu.registers[@code]
-    else if @code < 0x10
-      @emu.mem @emu.registers[@code - 0x08].get()
-    else if @code < 0x18
-      addr = @word + @emu.registers[@code - 0x10].get()
-      @emu.mem addr
-    else if @code == 0x18
-      @emu.cycles 1
-      if @pos == 'a'
-        addr = @emu.sp.get()
-        @emu.sp.set @emu.sp.get() + 1
-        @emu.mem addr
-      else
-        addr = @emu.sp.get() - 1
-        @emu.sp.set addr
-        @emu.mem addr
-    else if @code == 0x19
-      @emu.mem @emu.sp.get()
-    else if @code == 0x1a
-      @emu.cycles 1
-      @emu.mem(@emu.sp.get() + @word)
-    else if @code == 0x1b
-      @emu.sp
-    else if @code == 0x1c
-      @emu.pc
-    else if @code == 0x1d
-      @emu.ex
-    else if @code == 0x1e
-      @emu.cycles 1
-      @emu.mem @word
-    else if @code == 0x1f
-      @emu.cycles 1
-      get: => @word
-      set: ->
-    else
-      get: => (@code - 0x21) & 0xffff
-      set: ->
-
-
-class Register
-  constructor: (@name) ->
-    @value = 0
-  
-  get: ->
-    @value
-  
-  set: (value) ->
-    @value = value & 0xffff
