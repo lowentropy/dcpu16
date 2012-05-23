@@ -9,15 +9,19 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
 
   module.exports = class Emulator
     constructor: (opts={}) ->
-      {@sync} = opts
+      {@sync, @real_time, @max_queue_length} = opts
+      @max_queue_length ?= 256
+      ops.init this
+      @devices = []
+      @reset()
+      
+    reset: ->
       for reg in 'a b c x y z i j ia sp pc ex'.split(' ')
         @[reg] = new Register reg
       @registers = [@a, @b, @c, @x, @y, @z, @i, @j]
       @_mem = (0 for i in [0x0000..0xffff])
-      @devices = []
-      ops.init this
-      # @max_steps = 100000
-      @real_time = false
+      @_halt = false    
+      @_on_fire = false  
       @iq_enabled = false
       @total_cycles = 0
       @_a = new Operand this, 'a'
@@ -25,9 +29,14 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @_next_trigger = 1
       @mem_triggers = {}
       @queue = []
+      @load_program(@program) if @program
+      @callback = null
   
-    load_program: (program) ->
-      @_mem[i] = word for word, i in program.to_bin()
+    load_program: (@program) ->
+      @_mem[i] = word for word, i in @program.to_bin()
+    
+    line: ->
+      @program.line_map[@pc.get()]?.lineno
     
     cycles: (n) ->
       @_cycles += n
@@ -51,14 +60,30 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
         @a.set message
   
     queue_interrupt: (message) ->
-      if @queue.length >= 256
-        @catch_fire()
+      if @queue.length >= @max_queue_length
+        return @catch_fire()
       @queue.push message
 
     catch_fire: ->
-      console.log ">>> DCPU ON FIRE! <<<" unless @on_fire
-      @on_fire = true
+      unless @_on_fire
+        if @fire_callback
+          @fire_callback()
+        else
+          console.log ">>> DCPU ON FIRE! <<<"
+      @_on_fire = true
       @halt()
+    
+    pause: ->
+      @_halt = true
+      @_paused = true
+      device.pause() for device in @devices
+    
+    resume: ->
+      @_halt = false
+      @_paused = false
+      device.resume() for device in @devices
+    
+    on_fire: (@fire_callback) ->
     
     get_device_info: (hw_idx) ->
       if device = @devices[hw_idx]
@@ -126,30 +151,36 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       return @halt() unless @inst
       @read_args()
       @perform()
-      @steps++
       return @halt() if @total_steps > @max_steps
       if @queue.length && !@iq_enabled && !@recent_rfi
         @trigger_interrupt @queue.shift()
       @recent_rfi = false
-      # setTimeout (=> @step()), @pause() unless @_halt || @sync
-      process.nextTick (=> @step()) unless @_halt || @sync
+      # process.nextTick (=> @step()) unless @_halt || @sync
+      setTimeout (=> @step()), 0 unless @_halt || @sync
+    
+    step_over: ->
+      if @next_is_jsr()
+        next = @pc.get() + 1
+        @step() until @_halt or @pc.get() == next
+      else
+        @step() unless @_halt
   
-    pause: ->
-      0
-      # TODO: wait for correct ms...
+    next_is_jsr: ->
+      (@mem[@pc.get()] & 0x3ff) == 0x20
   
     halt: ->
       @_halt = true
+      @halt_devices()
+      @callback?() unless @sync
+    
+    halt_devices: ->
       device.halt() for device in @devices
-      @callback?()
   
-    clear: ->
-      @steps = 0
-  
-    run: (@callback) ->
-      @clear()
+    run: (callback) ->
+      @callback = callback if callback
       if @sync
         @step() until @_halt
+        @callback?() unless @_paused
       else
         @step()
   

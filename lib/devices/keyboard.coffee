@@ -73,3 +73,9 @@ require.define './devices/keyboard', (require, module, exports, __dirname, __fil
 
     halt: ->
       @active = false
+
+    pause: ->
+      @halt()
+    
+    resume: ->
+      @active = true

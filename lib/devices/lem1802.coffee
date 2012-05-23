@@ -99,6 +99,8 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
       @border_color = @emu.b.get() & 0xF
   
     halt: ->
+    pause: ->
+    resume: ->
     
     default_blink_interval: 1000
     default_char: ' '

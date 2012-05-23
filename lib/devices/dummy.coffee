@@ -20,3 +20,5 @@ require.define './devices/dummy', (require, module, exports, __dirname, __filena
       @emu.j.set 8
 
     halt: ->
+    pause: ->
+    resume: ->

@@ -57,9 +57,13 @@ require.define './program', (require, module, exports, __dirname, __filename) ->
   
     compile: ->
       @bin = (0 for i in [1..@size])
+      @line_map = (0 for i in [1..@size])
       addr = 0
       for line in @lines
-        @bin[addr++] = word for word in line.to_bin()
+        for word in line.to_bin()
+          @bin[addr] = word
+          @line_map[addr] = line
+          addr++
   
     to_bin: ->
       @bin
