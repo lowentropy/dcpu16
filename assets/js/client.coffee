@@ -48,9 +48,11 @@ reset = ->
   finalize = ->
     emu.halt_devices()
     emu.reset()
-    setTimeout (-> $('#on-fire').fadeOut()), 1000
     select_line()
   setTimeout finalize, 100
+
+put_out_fire: ->
+  $('#on-fire').fadeOut()
 
 dcpu_fire = ->
   $('#on-fire').show()
@@ -61,6 +63,7 @@ tick = ->
   ticker.fadeOut()
 
 run = ->
+  put_out_fire()
   toggle_run_pause()
   clear_selected_line()
   disable_steps()
@@ -72,6 +75,14 @@ run = ->
     emu.run ->
       program_done()
       select_line()
+
+step = ->
+  put_out_fire()
+  emu.sync = true
+  emu.step()
+  if emu._halt
+    program_done()
+  select_line()
 
 pause = ->
   toggle_run_pause()
@@ -104,11 +115,7 @@ window.kick_off = ->
 
 $('#step').click ->
   return if $(this).attr('disabled')
-  emu.sync = true
-  emu.step()
-  if emu._halt
-    program_done()
-  select_line()
+  step()
 
 $('#run_pause').click ->
   if $(this).hasClass 'run'
