@@ -20,29 +20,43 @@ html lang: 'en', ->
         div class: 'navbar-inner', ->
           div class: 'container', ->
             span class: 'brand', href: '#', 'DCPU-16'
-            span class: 'pull-right', 'Ignore me...'
             ul class: 'nav', ->
               li class: 'active', -> a href: '#', -> span 'Home'
 
       div id: 'content', class: 'container', ->
         div class: 'row', ->
           div class: 'span6', ->
-            h1 'Code goes here'
-            p "Here's an inline <code>code</code> snippet."
+            # h1 'Code goes here'
+            # p "Here's an inline <code>code</code> snippet."
             pre id: 'code', class: 'prettyprint linenums lang-dasm', -> '''
-              ias tick
-              set b, 1
-              set a, 2
-              hwi 0
-              set b, 60
-              set a, 0
-              hwi 0
+              ife 1, 2
+                set pc, ticker
+              
+              :fire
+                ias int       ; set interrupt handler address
+                int 1         ; trigger first interrupt
+                set pc, loop  ; wait for the explosion...
+
+              :int
+                int 1         ; each interrupt
+                int 1         ; triggers two more
+                rfi 0
+              
+              :ticker
+                ias tick
+                set b, 1
+                set a, 2
+                hwi 0
+                set b, 60
+                set a, 0
+                hwi 0
+
               :loop set pc, loop
               :tick rfi 0
             '''
 
           div class: 'span6', ->
-            h1 'Output goes here'
+            # h1 'Output goes here'
             
             div class: 'btn-group', ->
               button id: 'run_pause', class: 'btn btn-primary run', ->
@@ -62,7 +76,7 @@ html lang: 'en', ->
             div class: 'monitor', ->
               canvas width: '384', height: '288', class: 'lem'
 
-            h1 'Debugging goes here'
+            # h1 'Debugging goes here'
             
             div class: 'btn-group', ->
               button id: 'on-fire', class: 'btn btn-danger', style: 'display: none', ->

@@ -32,7 +32,7 @@ clear_selected_line = ->
 
 select_line = ->
   clear_selected_line()
-  code.find(".L#{emu.line()-1}").addClass 'hilite'
+  code.find("li:nth-child(#{emu.line()})").addClass 'hilite'
 
 program_done = ->
   console.log 'Progam done! Resetting.'
@@ -51,8 +51,8 @@ reset = ->
     select_line()
   setTimeout finalize, 100
 
-put_out_fire: ->
-  $('#on-fire').fadeOut()
+put_out_fire = ->
+  $('#on-fire').hide()
 
 dcpu_fire = ->
   $('#on-fire').show()
@@ -127,6 +127,7 @@ $('#pause').click ->
   emu.pause()
 
 $('#reset').click ->
+  put_out_fire()
   reset()
 
 $('#over').click ->
