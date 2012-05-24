@@ -29,7 +29,7 @@ html lang: 'en', ->
             # h1 'Code goes here'
             # p "Here's an inline <code>code</code> snippet."
             pre id: 'code', class: 'prettyprint linenums lang-dasm', -> '''
-              ife 1, 2
+              ife 1, 1
                 set pc, ticker
               
               :fire

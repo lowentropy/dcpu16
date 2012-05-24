@@ -79,6 +79,8 @@ run = ->
 step = ->
   put_out_fire()
   emu.sync = true
+  if paused
+    emu.resume()
   emu.step()
   if emu._halt
     program_done()
