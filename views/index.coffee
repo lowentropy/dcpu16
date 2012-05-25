@@ -14,6 +14,7 @@ html lang: 'en', ->
     
     text css('prettify')
     text css('lem')
+    text css('dcpu')
 
     body ->
       div class: 'navbar navbar-fixed-top', ->
@@ -69,7 +70,18 @@ html lang: 'en', ->
             div class: 'btn-group', ->
               button id: 'clock-tick', class: 'btn btn-info', style: 'display: none', ->
                 i class: 'icon-time icon-white'
-                
+            
+            register_bank = (registers...) ->
+              div class: 'row-fluid', ->
+                for register in registers
+                  div class: 'span1 reg-name', register
+                  div class: "span1 reg-val", data: {register}, '0000'
+              
+            div class: 'registers', ->
+              register_bank 'PC', 'A', 'X', 'I'
+              register_bank 'SP', 'B', 'Y', 'J'
+              register_bank 'EX', 'C', 'Z'
+
 
       script src: '/javascripts/vendor/jquery.min.js'
       script src: '/javascripts/vendor/prettify.js'

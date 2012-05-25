@@ -111,9 +111,25 @@ toggle_run_pause = ->
   else
     btn.html btn.html().replace('Run', 'Stop')
 
+link_registers = ->
+  $('.reg-val').each ->
+    elem = $(this)
+    register = elem.attr('data-register').toLowerCase()
+    emu[register].on_set (value) ->
+      elem.text hex(value)
+
+hex = (value) ->
+  pad_left(value.toString(16), 4, '0').toUpperCase()
+
+pad_left = (str, len, pad) ->
+  until str.length >= len
+    str = pad + str
+  str
+
 window.kick_off = ->
   load_program()
   init_emulator()
+  link_registers()
   console.log 'Emulator ready!'
 
 $('#step').click ->

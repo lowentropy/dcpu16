@@ -13,12 +13,14 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @max_queue_length ?= 256
       ops.init this
       @devices = []
-      @reset()
-      
-    reset: ->
       for reg in 'a b c x y z i j ia sp pc ex'.split(' ')
         @[reg] = new Register reg
       @registers = [@a, @b, @c, @x, @y, @z, @i, @j]
+      @reset()
+      
+    reset: ->
+      reg.set 0 for reg in @registers
+      @pc.set 0; @sp.set 0; @ex.set 0
       @_mem = (0 for i in [0x0000..0xffff])
       @_halt = false    
       @_on_fire = false  

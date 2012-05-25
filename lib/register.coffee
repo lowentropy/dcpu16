@@ -10,3 +10,6 @@ require.define './register', (require, module, exports, __dirname, __filename) -
   
     set: (value) ->
       @value = value & 0xffff
+      @callback?(@value)
+
+    on_set: (@callback) ->
