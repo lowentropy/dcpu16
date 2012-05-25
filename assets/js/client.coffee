@@ -49,6 +49,7 @@ reset = ->
     emu.halt_devices()
     emu.reset()
     select_line()
+    emu.call_back()
   setTimeout finalize, 100
 
 put_out_fire = ->
@@ -82,6 +83,7 @@ step = ->
   emu.sync = true
   resume() if paused
   emu.step()
+  emu.call_back()
   if emu._halt
     program_done()
   select_line()
@@ -91,7 +93,7 @@ pause = ->
   enable_steps()
   paused = true
   emu.pause()
-  setTimeout select_line, 100
+  setTimeout (-> select_line(); emu.call_back()), 100
   # select_line()
 
 enable_steps = ->
@@ -130,6 +132,8 @@ window.kick_off = ->
   load_program()
   init_emulator()
   link_registers()
+  emu.on_cycles (tc) ->
+    $('.total-cycles').text(tc)
   console.log 'Emulator ready!'
 
 $('#step').click ->

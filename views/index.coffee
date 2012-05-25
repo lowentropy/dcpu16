@@ -30,12 +30,7 @@ html lang: 'en', ->
             # h1 'Code goes here'
             # p "Here's an inline <code>code</code> snippet."
             pre id: 'code', class: 'prettyprint linenums lang-dasm', -> '''
-              sti a, 1
-              :loop
-                add j, i
-                set i, a
-                set a, j
-                set pc, loop
+              sti pc, 0
             '''
 
           div class: 'span6', ->
@@ -80,7 +75,11 @@ html lang: 'en', ->
             div class: 'registers', ->
               register_bank 'PC', 'A', 'X', 'I'
               register_bank 'SP', 'B', 'Y', 'J'
-              register_bank 'EX', 'C', 'Z'
+              register_bank 'EX', 'C', 'Z', 'IA'
+            
+            div class: 'row', ->
+              span class: 'span1', 'Cycles'
+              span class: 'span1 total-cycles', '0'
 
 
       script src: '/javascripts/vendor/jquery.min.js'

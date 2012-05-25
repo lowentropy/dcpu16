@@ -16,6 +16,8 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       for reg in 'a b c x y z i j ia sp pc ex'.split(' ')
         @[reg] = new Register reg
       @registers = [@a, @b, @c, @x, @y, @z, @i, @j]
+      @all_registers = @registers.concat [@pc, @sp, @ex, @ia]
+      @_cycles_callback = ->
       @reset()
       
     reset: ->
@@ -32,7 +34,9 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @mem_triggers = {}
       @queue = []
       @load_program(@program) if @program
-      @callback = null
+      @callback = ->
+      @_chunk = 0
+      @_nul = ->
   
     load_program: (@program) ->
       @_mem[i] = word for word, i in @program.to_bin()
@@ -153,12 +157,23 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       return @halt() unless @inst
       @read_args()
       @perform()
-      return @halt() if @total_steps > @max_steps
       if @queue.length && !@iq_enabled && !@recent_rfi
         @trigger_interrupt @queue.shift()
       @recent_rfi = false
-      # process.nextTick (=> @step()) unless @_halt || @sync
-      setTimeout (=> @step()), 0 unless @_halt || @sync
+      unless @_halt || @sync
+        # process.nextTick (=> @step()) unless @_halt || @sync
+        if @_chunk++ >= 100
+          @_chunk = 0
+          @call_back()
+          process.nextTick (=> @step()) unless @_halt || @sync
+        else
+          @step()
+    
+    call_back: ->
+      reg.call_back() for reg in @all_registers
+      @_cycles_callback @total_cycles
+    
+    on_cycles: (@_cycles_callback) ->
     
     step_over: ->
       if @next_is_jsr()
@@ -173,7 +188,7 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
     halt: ->
       @_halt = true
       @halt_devices()
-      @callback?() unless @sync
+      @callback() unless @sync
     
     halt_devices: ->
       device.halt() for device in @devices
@@ -182,7 +197,7 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @callback = callback if callback
       if @sync
         @step() until @_halt
-        @callback?() unless @_paused
+        @callback() unless @_paused
       else
         @step()
   
@@ -201,10 +216,10 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @_a.get()
       if op == 0
         fun = consts.extended[(@inst >> 5) & 0x1f].toLowerCase()
-        ops[fun]?(@_a)
+        (ops[fun] || @_nul)(@_a)
       else
         fun = consts.basic[op].toLowerCase()
-        ops[fun]?(@_b, @_a)
+        (ops[fun] || @_nul)(@_b, @_a)
 
     mem_trigger: (from, to, callback) ->
       key = @_next_trigger++

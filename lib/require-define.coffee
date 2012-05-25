@@ -1,18 +1,11 @@
-_next_tick = ->
-  channel = new MessageChannel
-  head = tail = {}
-  channel.port1.onmessage = ->
-    next = head.next
-    task = next.task
-    head = next
-    task()
-  return (task) ->
-    tail = tail.next = {task}
-    channel.port2.postMessage()
-
 if require?.define?
+  _img = new Image
+  _i = 1
   window.process =
-    nextTick: _next_tick()
+    nextTick: (callback) ->
+      _img.onerror = callback
+      _img.src = 'data:image/png,' + _i++
+      
 else
   module.exports = (args...) ->
     return (_name, fn) ->

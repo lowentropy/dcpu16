@@ -3,8 +3,12 @@ require.define './operand', (require, module, exports, __dirname, __filename) ->
 
   module.exports = class Operand
     constructor: (@emu, @pos) ->
-      # @loc()
-      # @get_word()
+      @word_loc =
+        get: => @word
+        set: ->
+      @literal_loc =
+        get: => (@code - 0x21) & 0xffff
+        set: ->
   
     reset: (@code) ->
       @get_word()
@@ -61,8 +65,6 @@ require.define './operand', (require, module, exports, __dirname, __filename) ->
         @emu.mem @word
       else if @code == 0x1f
         @emu.cycles 1
-        get: => @word
-        set: ->
+        @word_loc
       else
-        get: => (@code - 0x21) & 0xffff
-        set: ->
+        @literal_loc
