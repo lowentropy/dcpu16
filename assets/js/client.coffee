@@ -11,6 +11,8 @@ code = $ '#code'
 paused = false
 raw = code.text()
 last_cycles = 0
+run_cycle_start = 0
+run_time = new Date
 
 load_program = ->
   program = window.program = new Program
@@ -40,19 +42,26 @@ program_done = ->
   reset()
 
 reset = ->
+  was_paused = paused
   paused = false
   last_cycles = 0
   unless $('#run_pause').hasClass 'run'
     toggle_run_pause()
   enable_steps()
-  console.log 'HALT DEVICES' # XXX
   emu._halt = true
   finalize = ->
     emu.halt_devices()
     emu.reset()
     select_line()
     emu.call_back()
+    estimate_speed() unless was_paused
   setTimeout finalize, 100
+
+estimate_speed = ->
+  cycles = last_cycles - run_cycle_start
+  ms = new Date - run_time
+  khz = Math.round(cycles / ms)
+  console.log "est speed: #{khz}kHz"
 
 put_out_fire = ->
   $('#on-fire').hide()
@@ -72,6 +81,8 @@ run = ->
   disable_steps()
   emu.sync = false
   resume() if paused
+  run_cycle_start = last_cycles
+  run_time = new Date
   emu.run ->
     program_done()
     select_line()
@@ -95,7 +106,11 @@ pause = ->
   enable_steps()
   paused = true
   emu.pause()
-  setTimeout (-> select_line(); emu.call_back()), 100
+  finalize = ->
+    select_line()
+    emu.call_back()
+    estimate_speed()
+  setTimeout finalize, 100
   # select_line()
 
 enable_steps = ->

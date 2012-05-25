@@ -13,7 +13,6 @@ require.define './devices/clock', (require, module, exports, __dirname, __filena
     manufacturer_id: 0
   
     send_interrupt: ->
-      console.log "CLICK INTERRUPT" # XXX
       switch @emu.a.get()
         when 0 then @tick_at @emu.b.get() * 1000 / 60
         when 1 then @emu.c.set @get_elapsed()
@@ -22,7 +21,6 @@ require.define './devices/clock', (require, module, exports, __dirname, __filena
     tick_at: (@ms) ->
       clearInterval @interval if @interval
       @interval = setInterval (=> @tick()), @ms if @ms
-      console.log "SET INTERVAL: #{@interval}" # XXX
   
     tick: ->
       @elapsed++
@@ -38,12 +36,10 @@ require.define './devices/clock', (require, module, exports, __dirname, __filena
       @callbacks.push callback
 
     halt: ->
-      console.log "CLOCK HALT: #{@interval}" # XXX
       clearInterval @interval if @interval
     
     pause: ->
       @halt()
     
     resume: ->
-      console.log 'CLOCK RESUME' # XXX
       @tick_at @ms if @ms
