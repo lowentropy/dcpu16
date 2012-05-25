@@ -10,6 +10,7 @@ emu = null
 code = $ '#code'
 paused = false
 raw = code.text()
+last_cycles = 0
 
 load_program = ->
   program = window.program = new Program
@@ -40,6 +41,7 @@ program_done = ->
 
 reset = ->
   paused = false
+  last_cycles = 0
   unless $('#run_pause').hasClass 'run'
     toggle_run_pause()
   enable_steps()
@@ -133,7 +135,9 @@ window.kick_off = ->
   init_emulator()
   link_registers()
   emu.on_cycles (tc) ->
-    $('.total-cycles').text(tc)
+    diff = tc - last_cycles
+    last_cycles = tc
+    $('.total-cycles').text("#{tc} (+#{diff})")
   console.log 'Emulator ready!'
 
 $('#step').click ->
