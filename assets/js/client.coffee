@@ -68,19 +68,19 @@ run = ->
   clear_selected_line()
   disable_steps()
   emu.sync = false
-  if paused
-    emu.resume()
-    emu.run()
-  else
-    emu.run ->
-      program_done()
-      select_line()
+  resume() if paused
+  emu.run ->
+    program_done()
+    select_line()
 
+resume = ->
+  emu.resume()
+  paused = false
+  
 step = ->
   put_out_fire()
   emu.sync = true
-  if paused
-    emu.resume()
+  resume() if paused
   emu.step()
   if emu._halt
     program_done()
@@ -89,9 +89,10 @@ step = ->
 pause = ->
   toggle_run_pause()
   enable_steps()
-  emu.pause()
-  select_line()
   paused = true
+  emu.pause()
+  setTimeout select_line, 100
+  # select_line()
 
 enable_steps = ->
   $('#step,#over').attr 'disabled', false
@@ -124,9 +125,6 @@ $('#run_pause').click ->
     run()
   else
     pause()
-
-$('#pause').click ->
-  emu.pause()
 
 $('#reset').click ->
   put_out_fire()
