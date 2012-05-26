@@ -4,6 +4,8 @@
 Program = require './program'
 Emulator = require './emulator'
 GenericClock = require './devices/clock'
+LEM1802 = require './devices/lem1802'
+CanvasAdapter = require './adapters/canvas_adapter'
 
 program = null
 emu = null
@@ -22,20 +24,32 @@ init_emulator = ->
   emu = window.emu = new Emulator sync: true, max_queue_length: 5
   emu.load_program program
   emu.on_fire dcpu_fire
-  attach_clock()
+  attach_devices()
   select_line()
+
+attach_devices = ->
+  attach_clock()
+  # attach_monitor()
 
 attach_clock = ->
   clock = new GenericClock emu
   clock.on_tick tick
   emu.attach_device clock
 
+attach_monitor = ->
+  canvas = $('canvas')[0]
+  adapter = new CanvasAdapter
+  adapter.attach canvas
+  lem = new LEM1802 emu, adapter
+  emu.attach_device lem
+
 clear_selected_line = ->
   code.find('.hilite').removeClass 'hilite'
 
 select_line = ->
   clear_selected_line()
-  code.find("li:nth-child(#{emu.line()})").addClass 'hilite'
+  if line = emu.line()
+    code.find("li:nth-child(#{emu.line()})").addClass 'hilite'
 
 program_done = ->
   console.log 'Progam done! Resetting.'

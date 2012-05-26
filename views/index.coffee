@@ -27,15 +27,14 @@ html lang: 'en', ->
       div id: 'content', class: 'container', ->
         div class: 'row', ->
           div class: 'span6', ->
-            # h1 'Code goes here'
-            # p "Here's an inline <code>code</code> snippet."
             pre id: 'code', class: 'prettyprint linenums lang-dasm', -> '''
-              sti pc, 0
+              set a, 0
+              set b, 0x8000
+              hwi 1
+              :loop sti pc, loop
             '''
 
           div class: 'span6', ->
-            # h1 'Output goes here'
-            
             div class: 'btn-group', ->
               button id: 'run_pause', class: 'btn btn-primary run', ->
                 i id: 'run-icon', class: 'icon-play icon-white'
@@ -54,8 +53,6 @@ html lang: 'en', ->
             div class: 'monitor', ->
               canvas width: '384', height: '288', class: 'lem'
 
-            # h1 'Debugging goes here'
-            
             div class: 'btn-group', ->
               button id: 'on-fire', class: 'btn btn-danger', style: 'display: none', ->
                 i class: 'icon-fire icon-white'

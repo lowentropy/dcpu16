@@ -2,8 +2,7 @@ require.define ?= require('./require-define')(module, exports, __dirname, __file
 require.define './devices/lem1802', (require, module, exports, __dirname, __filename) ->
 
   module.exports = class LEM1802
-    constructor: (@emu) ->
-      @pixels = (([0,0,0] for col in [1..128]) for row in [1..96])
+    constructor: (@emu, @adapter) ->
       @border_color = @default_border_color
       @blink_interval = @default_blink_interval
       @font_address = 0
@@ -17,14 +16,20 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
   
     start: ->
       @reverse = false
-      setInterval (=> @reverse = !@reverse), @blink_interval
+      setInterval (=> @blink()), @blink_interval
+    
+    blink: ->
+      @reverse = !@reverse
+      @render()
   
     render: ->
       return unless @screen_address
       addr = @screen_address
+      console.log "RENDER, base =", addr # XXX
       for row in [0...12]
         for col in [0...32]
           @render_cell addr++
+      @adapter?.refresh()
   
     render_cell: (addr, word) ->
       base = addr - @screen_address
@@ -48,8 +53,8 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
         y = yb
         for j in [1..8]
           c = if g & 0x80000000 then f else b
-          @pixels[y++][x] = c
-          g >>= 1
+          @adapter?.draw x, y, c
+          g <<= 1
 
     char: (index) ->
       if @font_address
@@ -79,6 +84,7 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
       if @screen_address = @emu.b.get()
         @screen_trigger = @emu.mem_trigger @screen_address, @screen_address+0x180, (addr, word) =>
           @render_cell addr, word
+          @adapter?.refresh()
       @render()
   
     mem_map_font: ->
