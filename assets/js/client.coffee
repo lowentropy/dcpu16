@@ -25,6 +25,11 @@ window.load_program = (raw) ->
     emu.load_program program
     run()
 
+window._alert = (msg, timeout=2000) ->
+  $('#alerts').append $('<div class="alert">' + msg + '</div>')
+  elem = $('#alerts').find(':last-child')
+  setTimeout (-> elem.fadeOut()), timeout
+
 init_emulator = ->
   emu = window.emu = new Emulator sync: true, max_queue_length: 5
   emu.on_fire dcpu_fire

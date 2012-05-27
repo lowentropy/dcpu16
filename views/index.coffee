@@ -26,6 +26,9 @@ html lang: 'en', ->
 
       div id: 'content', class: 'container', ->
         div class: 'row', ->
+          div id: 'alerts', class: 'span6 offset3'
+
+        div class: 'row', ->
           div class: 'span6', ->
             div class: 'btn-group', ->
               
