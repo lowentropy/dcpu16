@@ -1,7 +1,8 @@
 = Features To Do
 
-* LEM1802
+* File sync
 * Breakpoints
+* Multi-file support
 * Watch variables
 * Show changes when stepping
 * Precompiler
@@ -12,6 +13,7 @@
 
 = Features
 
+* LEM1802
 * Working emulator
 * DCPU 1.7
 * Keyboard

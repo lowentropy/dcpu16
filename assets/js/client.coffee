@@ -29,7 +29,7 @@ init_emulator = ->
 
 attach_devices = ->
   attach_clock()
-  # attach_monitor()
+  attach_monitor()
 
 attach_clock = ->
   clock = new GenericClock emu
@@ -41,6 +41,7 @@ attach_monitor = ->
   adapter = new CanvasAdapter
   adapter.attach canvas
   lem = new LEM1802 emu, adapter
+  lem.start()
   emu.attach_device lem
 
 clear_selected_line = ->

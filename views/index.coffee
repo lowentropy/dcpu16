@@ -28,10 +28,76 @@ html lang: 'en', ->
         div class: 'row', ->
           div class: 'span6', ->
             pre id: 'code', class: 'prettyprint linenums lang-dasm', -> '''
-              set a, 0
-              set b, 0x8000
-              hwi 1
-              :loop sti pc, loop
+              :main
+                jsr init_screen
+                jsr setup_tick
+                jsr print_all
+                set pc, halt
+            
+              :print_all
+                set a, msg
+                set b, 0
+                jsr print
+                set a, msg
+                set b, 1
+                jsr print
+                set pc, pop
+            
+              :setup_tick
+                ias change_border
+                set a, 2
+                set b, 1
+                hwi 0
+                set a, 0
+                set b, 60
+                hwi 0
+                set pc, pop
+
+              :halt set pc, halt
+              
+              :init_screen
+                set a, 0
+                set b, screen
+                hwi 1
+                set pc, pop
+              
+              :change_border
+                set a, 3
+                set b, [border]
+                add [border], 1
+                hwi 1
+                rfi 0
+
+              ; A is addr, B is blink
+              :print
+                set i, a
+                set c, b
+                set j, [print_buf]
+                :loop
+                  set b, [i]
+                  bor b, 0xf000
+                  ifn c, 0
+                    bor b, 0x0080
+                  sti [j], b
+                  ifn [i], 0
+                    set pc, loop
+                sub j, screen
+                add j, 31
+                and j, 0xffc0
+                ;div j, 32
+                ;mul j, 32
+                add j, screen
+                set [print_buf], j
+                set pc, pop
+              
+              :border dat 0
+
+              :print_hex
+                set pc, pop
+
+              :msg dat "w00t here's a test message! and stuuuuf", 0
+              :print_buf dat screen
+              :screen
             '''
 
           div class: 'span6', ->
@@ -59,9 +125,9 @@ html lang: 'en', ->
                 text ' DCPU ON FIRE '
                 i class: 'icon-fire icon-white'
 
-            div class: 'btn-group', ->
-              button id: 'clock-tick', class: 'btn btn-info', style: 'display: none', ->
-                i class: 'icon-time icon-white'
+            # div class: 'btn-group', ->
+            #   button id: 'clock-tick', class: 'btn btn-info', style: 'display: none', ->
+            #     i class: 'icon-time icon-white'
             
             register_bank = (registers...) ->
               div class: 'row-fluid', ->

@@ -25,7 +25,6 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
     render: ->
       return unless @screen_address
       addr = @screen_address
-      console.log "RENDER, base =", addr # XXX
       for row in [0...12]
         for col in [0...32]
           @render_cell addr++
@@ -45,15 +44,18 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
       f = @color f
       b = @color b
       @render_glyph glyph, f, b, x, y
-  
+
     render_glyph: (g, f, b, xb, yb) ->
+      xb *= 4
+      yb *= 8
+      cs = [b, f]
       x = xb - 1
       for i in [1..4]
         x++
-        y = yb
+        y = yb + 7
         for j in [1..8]
-          c = if g & 0x80000000 then f else b
-          @adapter?.draw x, y, c
+          c = cs[(g >> 31) & 1]
+          @adapter?.draw x, y--, c
           g <<= 1
 
     char: (index) ->
@@ -103,6 +105,7 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
   
     set_border_color: ->
       @border_color = @emu.b.get() & 0xF
+      @adapter?.set_border_color @color(@border_color)
   
     halt: ->
     pause: ->
