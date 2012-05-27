@@ -25,7 +25,6 @@ set pc, main
   set a, 0
   set b, 60
   div b, [border_changes_per_sec]
-  print b
   hwi 0
   set pc, pop
 
