@@ -21,12 +21,11 @@ html lang: 'en', ->
         div class: 'navbar-inner', ->
           div class: 'container', ->
             span class: 'brand', href: '#', 'DCPU-16'
-            ul class: 'nav', ->
-              li class: 'active', -> a href: '#', -> span 'Home'
+            div id: 'alerts', class: 'offset2 span6'
 
       div id: 'content', class: 'container', ->
-        div class: 'row', ->
-          div id: 'alerts', class: 'span6 offset3'
+      #   div class: 'row', ->
+      #     div id: 'alerts', class: 'span6 offset3'
 
         div class: 'row', ->
           div class: 'span6', ->
