@@ -1,6 +1,6 @@
 set pc, main
 :border_changes_per_sec dat 1
-:msg dat "w00t here's a test message!", 0
+:msg dat "w00t here's a test message! I'd say this is getting pretty sweet :P", 0
 
 :main
   jsr init_screen

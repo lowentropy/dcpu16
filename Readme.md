@@ -23,6 +23,8 @@
 
 = Bugs
 
+* Things that don't work in strings: , ; \"
+
 = Fixed
 
 * Can't step after pausing emulator in browser
