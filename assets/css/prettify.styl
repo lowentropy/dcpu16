@@ -70,9 +70,15 @@ ol.linenums
   margin 0 0 0 33px
 
 ol.linenums li
-  padding-left 12px
+  padding-left 20px
   color #bebec5
   line-height 18px
   // text-shadow 0 1px 0 #fff
   &.hilite
-    background: #666
+    background-color #666
+  &.breakpoint
+    background-image url('/red_circle.png')
+    background-repeat no-repeat
+    // background-attachment fixed
+    background-origin padding-box
+    // background-position 0px 0px

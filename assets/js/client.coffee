@@ -1,6 +1,7 @@
 #= require ../../lib/require-define
 #= require_tree ../../lib
 #= require ./programs
+#= require './breakpoints
 
 Program = require './program'
 Emulator = require './emulator'
@@ -196,3 +197,6 @@ $('#over').click ->
   return if $(this).attr('disabled')
   emu.step_over()
   select_line()
+
+code.find('li').live 'click', ->
+  $(this).toggleClass 'breakpoint'
