@@ -27,108 +27,52 @@ html lang: 'en', ->
       div id: 'content', class: 'container', ->
         div class: 'row', ->
           div class: 'span6', ->
-            pre id: 'code', class: 'prettyprint linenums lang-dasm', -> '''
-              :main
-                jsr init_screen
-                jsr setup_tick
-                jsr print_all
-                set pc, halt
-            
-              :print_all
-                set a, msg
-                set b, 0
-                jsr print
-                set a, msg
-                set b, 1
-                jsr print
-                set pc, pop
-            
-              :setup_tick
-                ias change_border
-                set a, 2
-                set b, 1
-                hwi 0
-                set a, 0
-                set b, 60
-                hwi 0
-                set pc, pop
-
-              :halt set pc, halt
+            div class: 'btn-group', ->
               
-              :init_screen
-                set a, 0
-                set b, screen
-                hwi 1
-                set pc, pop
-              
-              :change_border
-                set a, 3
-                set b, [border]
-                add [border], 1
-                hwi 1
-                rfi 0
+              button(
+                class: 'btn span3 dropdown-toggle file-chooser',
+                data: {toggle: 'dropdown'}, ->
+                  span class: 'chosen-file pull-left', "Choose a file..."
+                  span class: 'caret pull-right')
+                    
+              ul id: 'file-choices', class: 'dropdown-menu', ->
+                for name, content of @files
+                  li -> a href: '#', name
 
-              ; A is addr, B is blink
-              :print
-                set i, a
-                set c, b
-                set j, [print_buf]
-                :loop
-                  set b, [i]
-                  bor b, 0xf000
-                  ifn c, 0
-                    bor b, 0x0080
-                  sti [j], b
-                  ifn [i], 0
-                    set pc, loop
-                sub j, screen
-                add j, 31
-                and j, 0xffc0
-                ;div j, 32
-                ;mul j, 32
-                add j, screen
-                set [print_buf], j
-                set pc, pop
-              
-              :border dat 0
-
-              :print_hex
-                set pc, pop
-
-              :msg dat "w00t here's a test message! and stuuuuf", 0
-              :print_buf dat screen
-              :screen
-            '''
+            pre id: 'code', class: 'code prettyprint linenums lang-dasm'
 
           div class: 'span6', ->
-            div class: 'btn-group', ->
-              button id: 'run_pause', class: 'btn btn-primary run', ->
-                i id: 'run-icon', class: 'icon-play icon-white'
-                i id: 'pause-icon', class: 'icon-pause icon-white hidden'
-                text ' Run'
-              button id: 'step', class: 'btn', ->
-                i class: 'icon-arrow-right'
-                text ' Step'
-              button id: 'over', class: 'btn', ->
-                i class: 'icon-share-alt'
-                text ' Over'
-              button id: 'reset', class: 'btn btn-warning', ->
-                i class: 'icon-refresh icon-white'
-                text ' Reset'
+            
+            div class: 'btn-toolbar', ->            
+              
+              div class: 'btn-group', ->
+                button id: 'run_pause', class: 'btn btn-primary run', ->
+                  i id: 'run-icon', class: 'icon-play icon-white'
+                  i id: 'pause-icon', class: 'icon-pause icon-white hidden'
+                  text ' Run'
+                button id: 'step', class: 'btn', ->
+                  i class: 'icon-arrow-right'
+                  text ' Step'
+                button id: 'over', class: 'btn', ->
+                  i class: 'icon-share-alt'
+                  text ' Over'
+                button id: 'reset', class: 'btn btn-warning', ->
+                  i class: 'icon-refresh icon-white'
+                  text ' Reset'
+            
+              div class: 'btn-group', ->
+                button id: 'on-fire', class: 'btn btn-danger', style: 'display: none', ->
+                  i class: 'icon-fire icon-white'
+                  text ' DCPU ON FIRE '
+                  i class: 'icon-fire icon-white'
+
+              div class: 'btn-group', ->
+                button id: 'clock-tick', class: 'btn btn-info', style: 'display: none', ->
+                  i class: 'icon-time icon-white'
             
             div class: 'monitor', ->
               canvas width: '384', height: '288', class: 'lem'
 
-            div class: 'btn-group', ->
-              button id: 'on-fire', class: 'btn btn-danger', style: 'display: none', ->
-                i class: 'icon-fire icon-white'
-                text ' DCPU ON FIRE '
-                i class: 'icon-fire icon-white'
-
-            # div class: 'btn-group', ->
-            #   button id: 'clock-tick', class: 'btn btn-info', style: 'display: none', ->
-            #     i class: 'icon-time icon-white'
-            
             register_bank = (registers...) ->
               div class: 'row-fluid', ->
                 for register in registers
@@ -143,14 +87,18 @@ html lang: 'en', ->
             div class: 'row', ->
               span class: 'span1', 'Cycles'
               span class: 'span1 total-cycles', '0'
-
+      
+      script id: 'files', type: 'template/json', ->
+        text JSON.stringify(@files)
 
       script src: '/javascripts/vendor/jquery.min.js'
       script src: '/javascripts/vendor/prettify.js'
       script src: '/javascripts/vendor/require.min.js'
       script src: '/bootstrap/js/bootstrap.min.js'
+      script src: '/socket.io/socket.io.js'
       
       text js('client')
       text js('lang-dasm')
       
-      script '$(function() { prettyPrint(); kick_off(); });'
+      script '$(function() { kick_off(); });'
+      

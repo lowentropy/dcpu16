@@ -1,5 +1,6 @@
 #= require ../../lib/require-define
 #= require_tree ../../lib
+#= require ./programs
 
 Program = require './program'
 Emulator = require './emulator'
@@ -11,18 +12,21 @@ program = null
 emu = null
 code = $ '#code'
 paused = false
-raw = code.text()
 last_cycles = 0
 run_cycle_start = 0
 run_time = new Date
 
-load_program = ->
-  program = window.program = new Program
-  program.load raw
+window.load_program = (raw) ->
+  reset ->
+    code.text raw
+    prettyPrint()
+    program = window.program = new Program
+    program.load raw
+    emu.load_program program
+    run()
 
 init_emulator = ->
   emu = window.emu = new Emulator sync: true, max_queue_length: 5
-  emu.load_program program
   emu.on_fire dcpu_fire
   attach_devices()
   select_line()
@@ -56,7 +60,7 @@ program_done = ->
   console.log 'Progam done! Resetting.'
   reset()
 
-reset = ->
+reset = (callback) ->
   was_paused = paused
   paused = false
   last_cycles = 0
@@ -70,6 +74,7 @@ reset = ->
     select_line()
     emu.call_back()
     estimate_speed() unless was_paused
+    callback?()
   setTimeout finalize, 100
 
 estimate_speed = ->
@@ -161,14 +166,12 @@ pad_left = (str, len, pad) ->
   str
 
 window.kick_off = ->
-  load_program()
   init_emulator()
   link_registers()
   emu.on_cycles (tc) ->
     diff = tc - last_cycles
     last_cycles = tc
     $('.total-cycles').text("#{tc} (+#{diff})")
-  console.log 'Emulator ready!'
 
 $('#step').click ->
   return if $(this).attr('disabled')

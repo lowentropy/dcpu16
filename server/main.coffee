@@ -1,5 +1,6 @@
 tty = require 'tty'
 express = require 'express'
+programs = require './programs'
 
 public = "#{__dirname}/../public"
 compiled = "#{__dirname}/../compiled"
@@ -7,6 +8,8 @@ views = "#{__dirname}/../views"
 styles = "#{__dirname}/../styles"
 
 app = express.createServer()
+
+io = require('socket.io').listen(app)
 
 app.set 'views', views
 app.set 'view engine', 'coffee'
@@ -27,9 +30,12 @@ app.configure 'production', ->
   app.use express.errorHandler()
 
 app.get '/', (req, res) ->
-  res.render 'index'
+  res.render 'index', files: programs.files
 
 app.listen 3000
+
+programs.on_update (name, content) ->
+  io.sockets.emit 'update_file', name, content
 
 process.stdin.resume()
 tty.setRawMode true

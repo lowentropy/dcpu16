@@ -2,14 +2,24 @@ require.define ?= require('./require-define')(module, exports, __dirname, __file
 require.define './program', (require, module, exports, __dirname, __filename) ->
 
   Line = require './line'
+  path = require 'path'
 
   module.exports = class Program
   
     constructor: ->
       @filename = '<raw>'
       @labels = {}
+      @active_files = {}
+    
+    name: ->
+      if @filename == '<raw>'
+        'untitled'
+      else
+        path.basename @file
   
     load_from_file: (@filename) ->
+      @active_files = {}
+      @active_files[@name()] = true
       @load @fs().readFileSync(@filename).toString()
   
     fs: ->
@@ -21,11 +31,20 @@ require.define './program', (require, module, exports, __dirname, __filename) ->
       @parse_lines()
       @assign_addresses()
       @compile()
+    
+    watch: (callback) ->
+      # TODO
+      @watched = true
+    
+    unwatch: ->
+      return unless @watched
+      # TODO
+      @watched = false
   
     split_lines: ->
       @lines = []
       for line, index in @raw.split "\n"
-        @lines.push(new Line this, line, index+1) if line.length
+        @lines.push(new Line this, line, @name(), index+1) if line.length
       # @lines.pop() unless @lines[@lines.length - 1]
   
     record_labels: ->

@@ -17,6 +17,7 @@
     "stylus": "0.22",
     "mongodb": "0.9",
     "coffeekup": "0.3",
-    "connect-assets": "2.2"
+    "connect-assets": "2.2",
+    "socket.io": "0.9"
   }
 }

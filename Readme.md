@@ -1,6 +1,5 @@
 = Features To Do
 
-* File sync
 * Breakpoints
 * Multi-file support
 * Watch variables
@@ -13,6 +12,7 @@
 
 = Features
 
+* File sync
 * LEM1802
 * Working emulator
 * DCPU 1.7

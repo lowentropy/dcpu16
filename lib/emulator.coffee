@@ -42,7 +42,7 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @_mem[i] = word for word, i in @program.to_bin()
     
     line: ->
-      @program.line_map[@pc.get()]?.lineno
+      @program?.line_map?[@pc.get()]?.lineno
     
     cycles: (n) ->
       @_cycles += n

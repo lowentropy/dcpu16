@@ -1,7 +1,7 @@
 set pc, start
 
 :max_ticks dat 50
-:tick_ms dat 100
+:tick_ms dat 30
 
 :start ; main
 jsr setup

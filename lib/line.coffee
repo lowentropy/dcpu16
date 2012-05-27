@@ -6,7 +6,7 @@ require.define './line', (require, module, exports, __dirname, __filename) ->
   Operation = require './operation'
 
   module.exports = class Line
-    constructor: (@program, @raw, @lineno) ->
+    constructor: (@program, @raw, @file, @lineno) ->
       @labels = []
       @str = @raw
       @remove_comments()
