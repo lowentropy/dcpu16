@@ -43,9 +43,23 @@ require.define './program', (require, module, exports, __dirname, __filename) ->
   
     split_lines: ->
       @lines = []
+      @line_num_map = {}
       for line, index in @raw.split "\n"
-        @lines.push(new Line this, line, @name(), index+1) if line.length
+        continue unless line.length
+        line = new Line this, line, @name(), index+1
+        @lines.push line
+        @line_num_map[index+1] = line
       # @lines.pop() unless @lines[@lines.length - 1]
+    
+    breakpoint_addr: (num) ->
+      while num <= @lines[@lines.length-1].lineno
+        line = @line_num_map[num]
+        index = @lines.indexOf line
+        break if index >= 0
+        num++
+      while line && !line.is_op()
+        line = @lines[++index]
+      line.addr
   
     record_labels: ->
       labels = []

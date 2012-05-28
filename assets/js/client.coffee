@@ -178,6 +178,7 @@ window.kick_off = ->
     diff = tc - last_cycles
     last_cycles = tc
     $('.total-cycles').text("#{tc} (+#{diff})")
+  emu.on_breakpoint -> pause()
 
 $('#step').click ->
   return if $(this).attr('disabled')
@@ -199,4 +200,9 @@ $('#over').click ->
   select_line()
 
 code.find('li').live 'click', ->
-  $(this).toggleClass 'breakpoint'
+  line = $(this).index() + 1
+  addr = program.breakpoint_addr line
+  line = program.line_map[addr].lineno
+  li = code.find("li:nth-child(#{line})")
+  li.toggleClass 'breakpoint'
+  emu.set_breakpoint addr, li.hasClass('breakpoint')

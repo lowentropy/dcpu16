@@ -33,3 +33,6 @@ require.define './dat', (require, module, exports, __dirname, __filename) ->
     to_bin: ->
       @extract_words() unless @words?
       @words
+
+    is_op: ->
+      false

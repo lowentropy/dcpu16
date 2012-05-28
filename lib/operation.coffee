@@ -39,3 +39,6 @@ require.define './operation', (require, module, exports, __dirname, __filename) 
   
     to_bin: ->
       @words()
+    
+    is_op: ->
+      true

@@ -33,16 +33,21 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @_next_trigger = 1
       @mem_triggers = {}
       @queue = []
-      @load_program(@program) if @program
+      @load_program(@program, false) if @program
       @callback = ->
       @_chunk = 0
       @_nul = ->
   
-    load_program: (@program) ->
+    load_program: (@program, clear_breakpoints=true) ->
+      @breakpoints = {} if clear_breakpoints
+      console.log "LOADING PROGRAM"
       @_mem[i] = word for word, i in @program.to_bin()
     
     line: ->
       @program?.line_map?[@pc.get()]?.lineno
+    
+    set_breakpoint: (addr, enabled=true) ->
+      @breakpoints[addr] = enabled
     
     cycles: (n) ->
       @_cycles += n
@@ -153,6 +158,8 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
   
     step: ->
       @_cycles = 0
+      return if !@skip_next_bp && @stop_on_breakpoint()
+      @skip_next_bp = false
       @advance()
       return @halt() unless @inst
       @read_args()
@@ -169,11 +176,20 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
         else
           @step()
     
+    stop_on_breakpoint: ->
+      addr = @pc.get()
+      if @breakpoints[addr]
+        @_breakpoint_callback?()
+        true
+      else
+        false
+    
     call_back: ->
       reg.call_back() for reg in @all_registers
       @_cycles_callback @total_cycles
     
     on_cycles: (@_cycles_callback) ->
+    on_breakpoint: (@_breakpoint_callback) ->
     
     step_over: ->
       if @next_is_jsr()
@@ -194,6 +210,7 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       device.halt() for device in @devices
   
     run: (callback) ->
+      @skip_next_bp = true
       @callback = callback if callback
       if @sync
         @step() until @_halt

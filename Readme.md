@@ -1,6 +1,5 @@
 = Features To Do
 
-* Breakpoints
 * Multi-file support
 * Watch variables
 * Show changes when stepping
@@ -12,6 +11,7 @@
 
 = Features
 
+* Breakpoints
 * File sync
 * LEM1802
 * Working emulator

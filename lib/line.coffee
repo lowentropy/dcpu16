@@ -44,5 +44,6 @@ require.define './line', (require, module, exports, __dirname, __filename) ->
   
     set_addr: (@addr) ->
   
+    is_op: -> @contents.is_op()
     to_bin: -> @contents.to_bin()
     size: -> @contents.size()

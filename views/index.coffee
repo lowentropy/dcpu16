@@ -31,12 +31,10 @@ html lang: 'en', ->
           div class: 'span6', ->
             div class: 'btn-group', ->
               
-              button(
-                class: 'btn span3 dropdown-toggle file-chooser',
-                data: {toggle: 'dropdown'}, ->
-                  span class: 'chosen-file pull-left', "Choose a file..."
-                  span class: 'caret pull-right')
-                    
+              button class: 'btn file-chooser', ->
+                span class: 'chosen-file', "Choose a file..."
+              button class: 'btn dropdown-toggle', data: {toggle: 'dropdown'}, ->
+                span class: 'caret'
               ul id: 'file-choices', class: 'dropdown-menu', ->
                 for name, content of @files
                   li -> a href: '#', name
