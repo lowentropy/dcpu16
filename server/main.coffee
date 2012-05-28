@@ -9,7 +9,7 @@ styles = "#{__dirname}/../styles"
 
 app = express.createServer()
 
-io = require('socket.io').listen(app)
+io = require('socket.io').listen(app, 'log level': 1)
 
 app.set 'views', views
 app.set 'view engine', 'coffee'
