@@ -1,18 +1,20 @@
 = Features To Do
 
-* Multi-file support
-* Watch variables
-* Show changes when stepping
 * Precompiler
-  * include
-  * const
-  * call
-  * os_call
+  * const: a label that just refers to a constant
+  * call: like JSR, but uses a symbol table
+  * os_call: trigger a named interrupt
+* Meta commands
+  * include: load another file raw at this location
+  * break: set a breakpoint on the following op on load
+* Multi-file support: included files appear separate in emulator
+* Watch variables: support registers and mem, both hex and ascii
+* Show changes when stepping
 
 = Features
 
 * Breakpoints
-* File sync
+* Live file sync
 * LEM1802
 * Working emulator
 * DCPU 1.7
