@@ -1,3 +1,5 @@
+; SIZE: 120 words
+
 set pc, main
 
 :page_table_addr dat 0x0400, 0, 0, 0, 0, 0, 0
@@ -7,7 +9,7 @@ set pc, main
 ;    out C - base address, or 0 if fail
 ; clobbers - I, X, Y, Z
 ;
-;    takes around 0.15 ms (150 cycles) per call
+; TIME: around 0.15 ms (150 cycles) per call
 :alloc_pages
   set push, a
   set push, b
