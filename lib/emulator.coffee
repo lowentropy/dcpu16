@@ -235,8 +235,12 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
         fun = consts.extended[(@inst >> 5) & 0x1f].toLowerCase()
         (ops[fun] || @_nul)(@_a)
       else
-        fun = consts.basic[op].toLowerCase()
+        fun = consts.basic[op]?.toLowerCase()
+        @error "Unknown operator: #{op}" unless fun
         (ops[fun] || @_nul)(@_b, @_a)
+    
+    error: (msg) ->
+      throw new Error "#{msg} (line #{@line()})"
 
     mem_trigger: (from, to, callback) ->
       key = @_next_trigger++

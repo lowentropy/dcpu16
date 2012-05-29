@@ -1,68 +1,120 @@
-;  in A - address in user memory
-; out B - address of page entry
-; clobbers - B
-:find_page_entry
-  set b, a
-  sub b, user_mem_base_addr
-  shr b, lg_page_size
-  add b, num_pages
-  sub b, 1
-  ifn [page_table_addr+b], 0
-    add pc, 3
-  sub b, 1
-  shr b, 1
-  sub pc, 5
-  add b, page_table_addr
-  set pc ,pop
+set pc, main
 
-;  in A - number of pages to allocate
-;  in B - owner
-; out C - address of start, or 0 if failed
-;     I - index into page entries
-;     X - holds page entry
-:allocate_pages
-  :start ; round up # pages and kick off
-    set push, a     ; i guess maybe we'll save this
-    jsr round_up_2  ; round up to full block
-    shl a, 8        ; put requested size in upper byte
-    set i, 0        ; start at root page
-    set x, [page_table_addr]
-  :loop
-    ifl x, a        ; page < a means it's either owned, or too small,
-      set pc, fail  ;   so we have failed (at the root node, no less)
-    ife x, a        ; identical means it's a free block of the right
-      set pc, found ;   size, so we're done here
-  :next
-    shl i, 1
-    add i, 1
-    set x, [page_table_addr+i]
-    add i, 1
-    set y, [page_table_addr+i]
-    sub i, 1
-    shr x, 8
-    shr y, 8
-    ifn x, 0
-      ifl x, y
-        set pc, okeedokee
-    set x, y
-    add i, 1
-  :okeedokee
-    set pc, loop
-  :found
-    set [page_table_addr+i], b
-    ; TODO: reset max-pages up the tree
-    set pc, done
-  :fail
-    set c, 0
-    sub pc, 4
-  :done
-    set a, pop
+:page_table_addr dat 0x0400, 0, 0, 0, 0, 0, 0
+
+;     in A - number of pages
+;     in B - owner
+;    out C - base address, or 0 if fail
+; clobbers - I, X, Y, Z
+;
+;    takes around 0.15 ms (150 cycles) per call
+:alloc_pages
+  set push, a
+  set push, b
+  jsr find_page_entry
+  ife b, 0
+    set pc, _ap_fail
+  set a, b
+  set b, pop
+  jsr claim_pages
+  set a, pop
+  set pc, pop
+:_ap_fail
+  set c, 0
+  set b, pop
+  set a, pop
+  set pc, pop
+
+;     in A - page entry address
+;     in B - owner
+;     in J - depth of page entry
+;    out C - address of claimed pages
+; clobbers - I, X, Y
+:claim_pages
+  set [a], b
+  set i, a
+  sub i, page_table_addr
+  set c, i
+  set x, [lg_num_pages]
+  sub x, j ; (i - 2^l + 1) << (2-l)
+  set y, 1
+  shl y, j
+  sub c, y
+  add c, 1
+  shl c, x
+  add c, [user_mem_base_addr]
+:_cp_loop
+  ife i, 0
     set pc, pop
+  set x, [page_table_addr+i]
+  sub i, 1
+  xor i, 1
+  add i, 1
+  set y, [page_table_addr+i]
+  ifg y, x
+    set x, y
+  sub i, 1
+  shr i, 1
+  set [page_table_addr+i], x
+  sub j, 1
+  set pc, _cp_loop
 
-; 0-3, 0-1, 2-3, 0, 1, 2, 3
+;     in A - number of pages wanted
+;    out B - address of page table entry
+;    out J - depth of page entry
+; clobbers - I, Z
+:find_page_entry
+  jsr round_up_2
+  set i, 0                    ; index = 0
+  set j, 0xFFFF
+  set z, [num_pages]
+  shl z, 1
+  set b, [page_table_addr+i]  ; sz = get index
+  shr b, 8
+:_fpe_loop
+  shr z, 1                    ; lsz /= 2
+  add j, 1                    ; lvl++
+  ifl b, a                    ; if sz < want
+    set pc, _fpe_fail         ;   fail
+  ife z, a                    ; if lsz == want
+    set pc, _fpe_found        ;   found
+  ife z, b                    ; if lsz == sz
+    jsr split_page            ;   split
+  shl i, 1                    ; index *= 2
+  add i, 1
+  set b, [page_table_addr+i]  ; sz = get index
+  shr b, 8
+  ifl b, a                    ; if sz < want
+    add pc, 2
+  set pc, _fpe_loop
+  add i, 1                    ; index++
+  set b, [page_table_addr+i]  ; sz = get index
+  shr b, 8
+  set pc, _fpe_loop           ; loop
+:_fpe_fail
+  set b, 0                    ; fail: b = 0
+  set pc, pop
+:_fpe_found
+  set b, i                    ; found: b = addr of entry
+  add b, page_table_addr      ;        j = depth of entry
+  set pc, pop
 
-;  in A - a number
-; out A - that number rounded up to the next power of two
+; in I - index of page entry to split
+; in Z - size of page to split
+:split_page
+  set push, i
+  shl z, 7
+  shl i, 1
+  add i, 1
+  set [page_table_addr+i], z
+  add i, 1
+  set [page_table_addr+i], z
+  set i, pop
+  shr z, 7
+  set pc, pop
+
+;     in A - a number
+;    out A - that number rounded up to the next power of two
 ; clobbers - A, I
 :round_up_2
   sub a, 1
@@ -80,3 +132,21 @@
   bor a, i
   add a, 1
   set pc, pop
+
+:user_mem_base_addr dat 0x8000
+:page_size dat 256
+:lg_page_size dat 8
+:num_pages dat 4
+:lg_num_pages dat 2
+
+:main
+  set b, 216
+  set a, 1
+  jsr alloc_pages
+  set a, 2
+  jsr alloc_pages
+  set a, 1
+  jsr alloc_pages
+  jsr alloc_pages
+  
+  sub pc, 1
