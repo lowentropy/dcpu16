@@ -173,7 +173,7 @@ require.define './ops', (require, module, exports, __dirname, __filename) ->
     rfi: (a) ->
       emu.cycles 3
       emu.disable_iq()
-      a.set emu.pop()
+      emu.a.set emu.pop()
       emu.pc.set emu.pop()
       emu.recent_rfi = true
   

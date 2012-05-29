@@ -39,7 +39,7 @@ html lang: 'en', ->
                 for name, content of @files
                   li -> a href: '#', name
 
-            pre id: 'code', class: 'code prettyprint linenums lang-dasm'
+            pre id: 'code', class: 'code prettyprint linenums lang-dasm pre-scrollable'
 
           div class: 'span6', ->
             

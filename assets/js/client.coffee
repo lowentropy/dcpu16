@@ -60,7 +60,12 @@ clear_selected_line = ->
 select_line = ->
   clear_selected_line()
   if line = emu.line()
-    code.find("li:nth-child(#{emu.line()})").addClass 'hilite'
+    li = code.find("li:nth-child(#{emu.line()})")
+    li.addClass 'hilite'
+    pos = li.position().top
+    scr = code.scrollTop()
+    dif = pos + scr - code.height() / 2 - 100
+    code.scrollTop(dif)
 
 program_done = ->
   console.log 'Progam done! Resetting.'

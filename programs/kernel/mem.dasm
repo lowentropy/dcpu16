@@ -1,1 +1,82 @@
-foo
+;  in A - address in user memory
+; out B - address of page entry
+; clobbers - B
+:find_page_entry
+  set b, a
+  sub b, user_mem_base_addr
+  shr b, lg_page_size
+  add b, num_pages
+  sub b, 1
+  ifn [page_table_addr+b], 0
+    add pc, 3
+  sub b, 1
+  shr b, 1
+  sub pc, 5
+  add b, page_table_addr
+  set pc ,pop
+
+;  in A - number of pages to allocate
+;  in B - owner
+; out C - address of start, or 0 if failed
+;     I - index into page entries
+;     X - holds page entry
+:allocate_pages
+  :start ; round up # pages and kick off
+    set push, a     ; i guess maybe we'll save this
+    jsr round_up_2  ; round up to full block
+    shl a, 8        ; put requested size in upper byte
+    set i, 0        ; start at root page
+    set x, [page_table_addr]
+  :loop
+    ifl x, a        ; page < a means it's either owned, or too small,
+      set pc, fail  ;   so we have failed (at the root node, no less)
+    ife x, a        ; identical means it's a free block of the right
+      set pc, found ;   size, so we're done here
+  :next
+    shl i, 1
+    add i, 1
+    set x, [page_table_addr+i]
+    add i, 1
+    set y, [page_table_addr+i]
+    sub i, 1
+    shr x, 8
+    shr y, 8
+    ifn x, 0
+      ifl x, y
+        set pc, okeedokee
+    set x, y
+    add i, 1
+  :okeedokee
+    set pc, loop
+  :found
+    set [page_table_addr+i], b
+    ; TODO: reset max-pages up the tree
+    set pc, done
+  :fail
+    set c, 0
+    sub pc, 4
+  :done
+    set a, pop
+    set pc, pop
+
+; 0-3, 0-1, 2-3, 0, 1, 2, 3
+
+;  in A - a number
+; out A - that number rounded up to the next power of two
+; clobbers - A, I
+:round_up_2
+  sub a, 1
+  set i, a
+  shr i, 1
+  bor a, i
+  set i, a
+  shr i, 2
+  bor a, i
+  set i, a
+  shr i, 4
+  bor a, i
+  set i, a
+  shr i, 8
+  bor a, i
+  add a, 1
+  set pc, pop

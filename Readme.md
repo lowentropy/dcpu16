@@ -11,6 +11,32 @@
 * Watch variables: support registers and mem, both hex and ascii
 * Show changes when stepping
 
+= OS Structures
+  Constants
+    num_pages = 224
+    page_size = 256
+    user_mem_base_addr = 0x2000
+    page_table_addr = ?
+    lg_page_size = 8
+  User memory (256) x 224   = 56  kw
+  Kernal pages (256) x 16   = 4   kw
+  Kernel code               = 2   kw
+  Hardware (6 -> 8) x 64    = 1/2 kw
+    hardware_id (2)
+    index (1)
+    message (1)
+    set_message (1)
+    owner (1)
+  Process (13 -> 16) x 64   = 1   kw
+    XYZABCIJ (8)
+    PC,SP,EX (3)
+    process_id (1)
+    interrupt_addr (1)
+  Page (1) x512             = 1/2 kw
+    owner (1b)
+    len (1b)
+    root,0,00,01,..,1,10,11,..
+
 = Features
 
 * Breakpoints
