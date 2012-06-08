@@ -1,0 +1,136 @@
+:programs
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+;     in A - address of program
+;    out B - address of loaded program, or 0 on failure
+:load_program
+  set b, a
+  set push, a
+  set a, [1+b] ; load size of program into A
+  set b, 1     ; set owner to kernel
+  jsr alloc_pages
+  set b, c
+  set a, pop    ; now B is addr of loaded prog, A is original addr
+  ife b, 0      ; fail if no pages available
+    set pc, pop
+  set c, [1+b]  ; get size again
+  jsr memcpy    ; copy program to page
+  set push, a
+  set push, b
+  jsr adjust_symbols
+  jsr link_libraries
+  ife c, 0
+    set pc, _load_program_fail
+  jsr add_program
+  set b, pop
+  set a, pop
+  set pc, pop
+:_load_program_fail
+  set b, pop
+  set a, b
+  set b, 1
+  jsr free_addr
+  set a, pop
+  set b, 0
+  set pc, pop
+
+;     in B - address of loaded program
+:add_program
+  set i, programs
+  sub i, 1
+  ifn [i], 0
+    sub pc, 3
+  set [i], b
+
+;     in B - address of loaded program
+:adjust_symbols
+  set a, b
+  add a, 2
+  jsr skip_past_zero
+  set i, [a] ; i is number of symbols
+:_adjust_symbols_loop
+  add a, 1
+  add [a], b ; bump the stored address
+  jsr skip_past_zero
+  sub i, 1
+  ifn i, 0
+    set pc, _adjust_symbols_loop
+  set pc, pop
+
+;       in A - address of library portion of program
+;      out C - status code, 0 is failure
+:link_libraries
+  set z, [a] ; z is number of libraries
+:_ll_loop
+  add a, 1
+  jsr link_library
+  ife c, 0
+    set pc, pop
+  sub z, 1
+  ifn z, 0
+    set pc, _ll_loop
+  set pc, pop
+
+;       in A - address of library section
+;      out C - status code, 0 is failure
+:link_library
+  jsr find_library ; C now has addr of library at its symbol section
+  ife c, 0
+    set pc, pop
+  set i, [a]       ; A here was set to right after the lib name
+  set j, [b]
+  add a, 1
+  add b, 1
+:_link_lib_loop
+  set c, 255
+  add a, 1
+  add b, 1
+  jsr strncmp
+  ifn x, 0
+    set pc, _link_lib_tail
+  set [-1+a], [-1+b]
+  jsr skip_past_zero
+  sub i, 1
+:_link_lib_tail
+  set c, a
+  set a, b
+  jsr skip_past_zero
+  sub j, 1
+  set a, c
+  ifn i, 0
+    ifn j, 0
+      set pc, _link_lib_loop
+  set c, 1
+  ifn i, 0
+    set c, 0
+  set pc, pop
+
+;      in A - name of library
+;     out A - after library name
+;     out B - addr of library's symbol section, or 0 on fail
+:find_library
+  set i, 0xFFFF
+:_flib_loop
+  add i, 1
+  set b, [i]
+  add b, 2
+  set c, 255
+  jsr strncmp
+  ifn x, 0
+    ifl i, 63
+      set pc, _flib_loop
+  ife x, 0
+    set pc, _flib_fail
+  jsr skip_past_zero
+  set push, a
+  set a, b
+  jsr skip_past_zero
+  set b, a
+  set a, pop
+  set pc, pop
+:_flib_fail
+  set c, 0
+  set pc, pop

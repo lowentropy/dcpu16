@@ -1,16 +1,13 @@
-:kernel
-  ias kernel_interrupt
-  set pc, main
-
-:kernel_interrupt
-  set [interrupt_message], a
-  set [user_sp], sp
-  set sp, kernel_sp
-  set a, proc
-  jsr save_proc
-  jsr handle_kernel_interrupt
-  set a, proc
-  jsr restore_proc
+; :tmp_int_msg dat 0
+; :kernel_interrupt
+;   set [interrupt_message], a
+;   set [tmp_sp], sp
+;   set sp, kernel_stack
+;   set a, proc
+;   jsr save_proc
+;   jsr handle_kernel_interrupt
+;   set a, proc
+;   jsr restore_proc
 
 ;  in A - address of process table entry
 ; clobbers - B
@@ -22,7 +19,7 @@
   set [0x5+a], z
   set [0x6+a], i
   set [0x7+a], j
-  set b, [user_sp]
+  set b, [tmp_sp]
   set [0x0+a], [0+b] ; A  - not really necessary,
   set [0x8+a], [1+b] ; PC -  stored in userland stack
   set [0x9+a], b
@@ -43,43 +40,5 @@
   set ex, [0xa+a]
   rfi 0
 
-:handle_kernel_interrupt
-  set a, 0
-  set b, 0
-  set c, 0
-  set x, 0
-  set y, 0
-  set z, 0
-  set i, 0
-  set j, 0
-  set ex, 0
-  set pc, pop
-
-:interrupt_message
+:tmp_sp
   dat 0
-
-:user_sp
-  dat 0
-
-dat 0, 0, 0, 0, 0, 0, 0, 0
-:kernel_sp
-
-; A B C X Y Z I J PC SP EX
-:proc
-  dat 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-
-:main
-  set a, 1
-  set b, 2
-  set c, 3
-  set x, 4
-  set y, 5
-  set z, 6
-  set i, 7
-  set j, 8
-  set ex, 9
-  set push, 1
-  set push, 2
-  set push, 3
-  int 1
-  sub pc, 1

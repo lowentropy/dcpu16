@@ -1,4 +1,4 @@
-require.define ?= require('./require-define')(module, exports, __dirname, __filename)
+require.define ?= require('../require-define')(module, exports, __dirname, __filename)
 require.define './devices/keyboard', (require, module, exports, __dirname, __filename) ->
 
   tty = require 'tty'

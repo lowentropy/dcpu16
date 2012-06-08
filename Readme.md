@@ -1,8 +1,9 @@
 = Features To Do
 
+* Fix bugs (stepping)
+* Refactor control code
 * Precompiler
   * const: a label that just refers to a constant
-  * call: like JSR, but uses a symbol table
   * os_call: trigger a named interrupt
 * Meta commands
   * include: load another file raw at this location
@@ -13,13 +14,15 @@
 
 = OS Structures
   Constants
-    num_pages = 224
-    page_size = 256
+    num_pages = 0x100
+    num_user_pages = 0xE0
+    num_kernel_pages = 0x20
+    page_size = 0x100
     user_mem_base_addr = 0x2000
     page_table_addr = ?
     lg_page_size = 8
   User memory (256) x 224   = 56  kw
-  Kernal pages (256) x 16   = 4   kw
+  Kernel pages (256) x 16   = 4   kw
   Kernel code               = 2   kw
   Hardware (6 -> 8) x 64    = 1/2 kw
     hardware_id (2)

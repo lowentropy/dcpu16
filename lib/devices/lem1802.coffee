@@ -1,4 +1,4 @@
-require.define ?= require('./require-define')(module, exports, __dirname, __filename)
+require.define ?= require('../require-define')(module, exports, __dirname, __filename)
 require.define './devices/lem1802', (require, module, exports, __dirname, __filename) ->
 
   module.exports = class LEM1802

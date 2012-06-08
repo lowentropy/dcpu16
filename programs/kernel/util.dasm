@@ -1,0 +1,70 @@
+;     in A - address of first string
+;     in B - address of second string
+;     in C - max length to compare, or 0 if unbounded
+;    out X - 0 if strings are equal, 1 otherwise
+; clobbers - I, J, X, Y, Z
+:strncmp
+  set i, a
+  set j, b
+  set x, 0
+  set y, 0
+  set z, c
+  ife c, 0
+    set z, 0xFFFF
+:_snc_loop
+  ife y, z
+    set pc, pop
+  add y, 1
+  ifn [i], [j]
+    set pc, _snc_fail
+  ife [i], 0
+    set pc, pop
+  sti pc, _snc_loop
+:_snc_fail
+  set x, 1
+  set pc, pop
+
+;     in A - source address
+;     in B - target address
+;     in C - number of words to copy
+; clobbers - X
+:memcpy
+  set x, c
+:_memcpy_loop
+  ife x, 0
+    set pc, pop
+  sub x, 1
+  set i, a
+  set j, b
+  sti [j], [i]
+  set pc, _memcpy_loop
+
+;     in A - address pointer
+;    out A - skipped address
+:skip_past_zero
+  sub a, 1
+  add a, 1
+  ifn [a], 0
+    sub pc, 3
+  add a, 1
+  set pc, pop
+
+;     in A - a number
+;    out A - that number rounded up to the next power of two
+; clobbers - A, I
+:round_up_2
+  sub a, 1
+  set i, a
+  shr i, 1
+  bor a, i
+  set i, a
+  shr i, 2
+  bor a, i
+  set i, a
+  shr i, 4
+  bor a, i
+  set i, a
+  shr i, 8
+  bor a, i
+  add a, 1
+  set pc, pop

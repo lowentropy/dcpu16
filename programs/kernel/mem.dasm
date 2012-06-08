@@ -1,8 +1,4 @@
-; SIZE: 120 words
-
-set pc, main
-
-:page_table_addr dat 0x0400, 0, 0, 0, 0, 0, 0
+dat 0
 
 ;     in A - number of pages
 ;     in B - owner
@@ -27,6 +23,61 @@ set pc, main
   set a, pop
   set pc, pop
 
+;     in A - address of first page
+;     in B - owner
+;    out C - number of pages freed
+; clobbers - I, Z
+:free_addr
+  set i, a
+  shr i, [lg_page_size]
+  add i, [num_pages]
+  sub i, 1
+  set c, 0
+  set z, 0x100
+:_fa_climb
+  ifn [page_table_addr+i], 0
+    set pc, _fa_found
+  shl c, 1
+  ife c, 0
+    add c, 1
+  sub i, 1
+  shr i, 1
+  shl z, 1
+  set pc, _fa_climb
+:_fa_found
+  ifn [page_table_addr+i], b
+    set pc, _fa_fail
+:_fa_free_page
+  set [page_table_addr+i], z
+  ife i, 0
+    set pc, pop
+  sub i, 1
+  xor i, 1
+  add i, 1
+  ifn [page_table_addr+i], z
+    set pc, _fa_zip_up
+  set [page_table_addr+i], 0
+  sub i, 1
+  xor i, 1
+  add i, 1
+  set [page_table_addr+i], 0
+  sub i, 1
+  shr i, 1
+  shl z, 1
+  set pc, _fa_free_page
+:_fa_zip_up
+  sub i, 1
+  shr i, 1
+  ifl z, [page_table_addr+i]
+    set pc, pop
+  set [page_table_addr+i], z
+  ife i, 0
+    set pc, pop
+  set pc, _fa_zip_up
+:_fa_fail
+  set c, 0
+  set pc, pop
+
 ;     in A - page entry address
 ;     in B - owner
 ;     in J - depth of page entry
@@ -44,7 +95,7 @@ set pc, main
   sub c, y
   add c, 1
   shl c, x
-  add c, [user_mem_base_addr]
+  shl c, [lg_page_size]
 :_cp_loop
   ife i, 0
     set pc, pop
@@ -67,38 +118,38 @@ set pc, main
 ; clobbers - I, Z
 :find_page_entry
   jsr round_up_2
-  set i, 0                    ; index = 0
+  set i, 0
   set j, 0xFFFF
   set z, [num_pages]
   shl z, 1
-  set b, [page_table_addr+i]  ; sz = get index
+  set b, [page_table_addr+i]
   shr b, 8
 :_fpe_loop
-  shr z, 1                    ; lsz /= 2
-  add j, 1                    ; lvl++
-  ifl b, a                    ; if sz < want
-    set pc, _fpe_fail         ;   fail
-  ife z, a                    ; if lsz == want
-    set pc, _fpe_found        ;   found
-  ife z, b                    ; if lsz == sz
-    jsr split_page            ;   split
-  shl i, 1                    ; index *= 2
+  shr z, 1
+  add j, 1
+  ifl b, a
+    set pc, _fpe_fail
+  ife z, a
+    set pc, _fpe_found
+  ife z, b
+    jsr split_page
+  shl i, 1
   add i, 1
-  set b, [page_table_addr+i]  ; sz = get index
+  set b, [page_table_addr+i]
   shr b, 8
-  ifl b, a                    ; if sz < want
+  ifl b, a
     add pc, 2
   set pc, _fpe_loop
-  add i, 1                    ; index++
-  set b, [page_table_addr+i]  ; sz = get index
+  add i, 1
+  set b, [page_table_addr+i]
   shr b, 8
-  set pc, _fpe_loop           ; loop
+  set pc, _fpe_loop
 :_fpe_fail
-  set b, 0                    ; fail: b = 0
+  set b, 0
   set pc, pop
 :_fpe_found
-  set b, i                    ; found: b = addr of entry
-  add b, page_table_addr      ;        j = depth of entry
+  set b, i
+  add b, page_table_addr
   set pc, pop
 
 ; in I - index of page entry to split
@@ -115,40 +166,27 @@ set pc, main
   shr z, 7
   set pc, pop
 
-;     in A - a number
-;    out A - that number rounded up to the next power of two
-; clobbers - A, I
-:round_up_2
-  sub a, 1
-  set i, a
-  shr i, 1
-  bor a, i
-  set i, a
-  shr i, 2
-  bor a, i
-  set i, a
-  shr i, 4
-  bor a, i
-  set i, a
-  shr i, 8
-  bor a, i
-  add a, 1
-  set pc, pop
+:kernel_pages dat 0x0020
+:page_size    dat 0x0100
+:num_pages    dat 0x0100
+:lg_page_size dat 0x0008
+:lg_num_pages dat 0x0008
 
-:user_mem_base_addr dat 0x8000
-:page_size dat 256
-:lg_page_size dat 8
-:num_pages dat 4
-:lg_num_pages dat 2
-
-:main
-  set b, 216
-  set a, 1
-  jsr alloc_pages
-  set a, 2
-  jsr alloc_pages
-  set a, 1
-  jsr alloc_pages
-  jsr alloc_pages
-  
-  sub pc, 1
+:page_table_addr ; 512 words
+  dat 0x8001, 0x4001, 0x8000, 0x0001, 0x4000
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

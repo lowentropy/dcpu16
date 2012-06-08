@@ -1,6 +1,14 @@
 require.define ?= require('./require-define')(module, exports, __dirname, __filename)
 require.define './ops', (require, module, exports, __dirname, __filename) ->
 
+  pad_left = (str, len, pad) ->
+    until str.length >= len
+      str = pad + str
+    str
+    
+  hex = (value) ->
+    pad_left(value.toString(16), 4, '0').toUpperCase()
+    
   emu = null
 
   rnd = (x) ->
@@ -199,4 +207,4 @@ require.define './ops', (require, module, exports, __dirname, __filename) ->
     # TODO: REMOVE ME!
     print: (a) ->
       emu.cycles 4
-      console.log "DCPU: #{a.get()}"
+      console.log "DCPU: 0x#{hex a.get()}"
