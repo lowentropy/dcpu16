@@ -2,21 +2,31 @@ doctype 5
 html lang: 'en', ->
 
   head ->
+  
+    # meta stuff
     meta charset: 'utf-8'
     meta name: 'viewport', content: 'width=device-width, initial-scale=1.0'
     title 'DCPU-16 Testbed'
-    
     link rel: 'shortcut icon', href: '/images/favicon.ico'
 
+    # bootstrap styles
     link rel: 'stylesheet', href: '/bootstrap/css/bootstrap.css'
     style 'body { padding-top: 60px; }'
     link rel: 'stylesheet', href: '/bootstrap/css/bootstrap-responsive.css'
     
+    # codemirror
+    link rel: 'stylesheet', href: '/stylesheets/vendor/codemirror.css'
+    link rel: 'stylesheet', href: '/stylesheets/vendor/theme/ambiance.css'
+    link rel: 'stylesheet', href: '/stylesheets/vendor/theme/lesser-dark.css'
+    
+    # my styles
     text css('prettify')
     text css('lem')
     text css('dcpu')
 
     body ->
+    
+      # title bar
       div class: 'navbar navbar-fixed-top', ->
         div class: 'navbar-inner', ->
           div class: 'container', ->
@@ -24,10 +34,11 @@ html lang: 'en', ->
             div id: 'alerts', class: 'offset2 span6'
 
       div id: 'content', class: 'container', ->
-      #   div class: 'row', ->
-      #     div id: 'alerts', class: 'span6 offset3'
 
+        # the main row
         div class: 'row', ->
+          
+          # the editor part
           div class: 'span6', ->
             div class: 'btn-group', ->
               
@@ -39,8 +50,10 @@ html lang: 'en', ->
                 for name, content of @files
                   li -> a href: '#', name
 
-            pre id: 'code', class: 'code prettyprint linenums lang-dasm pre-scrollable'
+            form ->
+              textarea id: 'code'
 
+          # the output part
           div class: 'span6', ->
             
             div class: 'btn-toolbar', ->            
@@ -84,17 +97,21 @@ html lang: 'en', ->
               span class: 'span1', 'Cycles'
               span class: 'span1 total-cycles', '0'
       
+      # store .dasm files
       script id: 'files', type: 'template/json', ->
         text JSON.stringify(@files)
 
+      # vendor scripts
       script src: '/javascripts/vendor/jquery.min.js'
-      script src: '/javascripts/vendor/prettify.js'
       script src: '/javascripts/vendor/require.min.js'
+      script src: '/javascripts/vendor/codemirror.js'
       script src: '/bootstrap/js/bootstrap.min.js'
       script src: '/socket.io/socket.io.js'
       
+      # custom scripts
       text js('client')
-      text js('lang-dasm')
+      text js('mode/dasm')
       
+      # let's get this party started
       script '$(function() { kick_off(); });'
       
