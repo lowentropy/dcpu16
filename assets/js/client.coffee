@@ -1,7 +1,9 @@
 #= require ../../lib/require-define
 #= require_tree ../../lib
+#= require ./alert
 #= require ./programs
-#= require './breakpoints
+#= require ./breakpoints
+#= require ./mode/dcpu
 
 Program = require './program'
 Emulator = require './emulator'
@@ -12,10 +14,39 @@ CanvasAdapter = require './adapters/canvas_adapter'
 program = null
 emu = null
 code = $ '#code'
-paused = false
-last_cycles = 0
-run_cycle_start = 0
-run_time = new Date
+
+state = 'reset'
+goto = (name) ->
+  states[state].leave?()
+  state = name
+  states[state].enter?()
+action = (name) ->
+  states[state].action?()
+
+
+states =
+  reset:
+    enter: -> reset()
+    start: -> goto 'running'
+    step: -> step(); goto 'paused'
+    
+  running:
+    enter: -> run()
+    reset: -> goto 'reset'
+    pause: -> goto 'paused'
+    leave: -> stop()
+    
+  paused:
+    reset: -> goto 'reset'
+    step: -> step()
+    start: -> goto 'running'
+  
+  done:
+    enter: ->
+      disable_steps()
+      disable_run_pause()
+    reset: -> goto 'reset'
+
 
 window.load_program = (raw) ->
   reset ->
@@ -25,11 +56,6 @@ window.load_program = (raw) ->
     program.load raw
     emu.load_program program
     run()
-
-window._alert = (msg, timeout=2000) ->
-  $('#alerts').append $('<div class="alert">' + msg + '</div>')
-  elem = $('#alerts').find(':last-child')
-  setTimeout (-> elem.fadeOut()), timeout
 
 init_emulator = ->
   emu = window.emu = new Emulator sync: true, max_queue_length: 5
@@ -42,9 +68,7 @@ attach_devices = ->
   attach_monitor()
 
 attach_clock = ->
-  clock = new GenericClock emu
-  clock.on_tick tick
-  emu.attach_device clock
+  emu.attach_device(new GenericClock emu)
 
 attach_monitor = ->
   canvas = $('canvas')[0]
@@ -66,10 +90,6 @@ select_line = ->
     scr = code.scrollTop()
     dif = pos + scr - code.height() / 2 - 100
     code.scrollTop(dif)
-
-program_done = ->
-  console.log 'Progam done! Resetting.'
-  reset()
 
 reset = (callback) ->
   was_paused = paused
@@ -100,28 +120,14 @@ put_out_fire = ->
 dcpu_fire = ->
   $('#on-fire').show()
 
-tick = ->
-  ticker = $ '#clock-tick'
-  ticker.show()
-  ticker.fadeOut()
-
 run = ->
-  put_out_fire()
   toggle_run_pause()
   clear_selected_line()
   disable_steps()
   emu.sync = false
-  resume() if paused
-  run_cycle_start = last_cycles
-  run_time = new Date
-  emu.run ->
-    program_done()
-    select_line()
-
-resume = ->
   emu.resume()
-  paused = false
-  
+  emu.run -> goto 'done'
+
 step = ->
   put_out_fire()
   emu.sync = true
@@ -149,6 +155,10 @@ enable_steps = ->
 
 disable_steps = ->
   $('#step,#over').attr 'disabled', true
+
+disable_run_pause = ->
+  $('#run_pause').attr 'disabled', true
+  
 
 toggle_run_pause = ->
   btn = $('#run_pause')

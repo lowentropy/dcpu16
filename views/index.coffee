@@ -65,10 +65,6 @@ html lang: 'en', ->
                   i class: 'icon-fire icon-white'
                   text ' DCPU ON FIRE '
                   i class: 'icon-fire icon-white'
-
-              div class: 'btn-group', ->
-                button id: 'clock-tick', class: 'btn btn-info', style: 'display: none', ->
-                  i class: 'icon-time icon-white'
             
             div class: 'monitor', ->
               canvas width: '384', height: '288', class: 'lem'

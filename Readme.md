@@ -1,7 +1,7 @@
 = Features To Do
 
-* Fix bugs (stepping)
 * Refactor control code
+* Fix bugs (stepping)
 * Precompiler
   * const: a label that just refers to a constant
   * os_call: trigger a named interrupt
