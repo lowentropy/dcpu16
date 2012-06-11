@@ -1,11 +1,11 @@
 files = JSON.parse $('#files').text()
 
 socket = io.connect 'http://localhost:3000'
-socket.on 'update_file', (name, content) ->
-  files[name] = content
-  if name == chosen
-    choose_file(name)
-    _alert "Reloaded file <strong>#{name}</strong>"
+# socket.on 'update_file', (name, content) ->
+#   files[name] = content
+#   if name == chosen
+#     choose_file(name)
+#     _alert "Reloaded file <strong>#{name}</strong>"
 
 chosen = null
 

@@ -3,7 +3,6 @@
 #= require ./alert
 #= require ./programs
 #= require ./breakpoints
-#= require ./mode/dcpu
 
 Program = require './program'
 Emulator = require './emulator'
@@ -13,22 +12,26 @@ CanvasAdapter = require './adapters/canvas_adapter'
 
 program = null
 emu = null
+mirror = null
 code = $ '#code'
 
 state = 'reset'
 goto = (name) ->
+  return if state == name
+  console.log "#{state}: goto #{name}"
   states[state].leave?()
   state = name
   states[state].enter?()
 action = (name) ->
-  states[state].action?()
-
+  console.log "#{state}: action #{name}"
+  states[state][name]?()
 
 states =
   reset:
     enter: -> reset()
     start: -> goto 'running'
     step: -> step(); goto 'paused'
+    leave: -> compile_program()
     
   running:
     enter: -> run()
@@ -37,33 +40,25 @@ states =
     leave: -> stop()
     
   paused:
+    enter: -> pause()
     reset: -> goto 'reset'
     step: -> step()
     start: -> goto 'running'
   
   done:
-    enter: ->
-      disable_steps()
-      disable_run_pause()
+    enter: -> done()
     reset: -> goto 'reset'
 
 
 window.load_program = (raw) ->
-  reset ->
-    code.text raw
-    prettyPrint()
-    program = window.program = new Program
-    program.load raw
-    emu.load_program program
-    run()
+  mirror.setValue raw
+  program = window.program = new Program
+  program.load raw
+  emu.load_program program
 
 init_emulator = ->
   emu = window.emu = new Emulator sync: true, max_queue_length: 5
   emu.on_fire dcpu_fire
-  attach_devices()
-  select_line()
-
-attach_devices = ->
   attach_clock()
   attach_monitor()
 
@@ -78,41 +73,77 @@ attach_monitor = ->
   lem.start()
   emu.attach_device lem
 
+selected_line = null
 clear_selected_line = ->
-  code.find('.hilite').removeClass 'hilite'
+  if selected_line
+    mirror.setLineClass selected_line, null, null
+    selected_line = null
 
 select_line = ->
   clear_selected_line()
   if line = emu.line()
-    li = code.find("li:nth-child(#{emu.line()})")
-    li.addClass 'hilite'
-    pos = li.position().top
-    scr = code.scrollTop()
-    dif = pos + scr - code.height() / 2 - 100
-    code.scrollTop(dif)
+    line--
+    selected_line = mirror.setLineClass line, null, 'activeline'
+    {x, y} = mirror.charCoords {line, ch: 1}
+    mirror.scrollTo x, y
 
-reset = (callback) ->
-  was_paused = paused
-  paused = false
-  last_cycles = 0
-  unless $('#run_pause').hasClass 'run'
-    toggle_run_pause()
-  enable_steps()
+reset = ->
+  console.log "reset()"
   emu._halt = true
   finalize = ->
     emu.halt_devices()
     emu.reset()
-    select_line()
     emu.call_back()
-    estimate_speed() unless was_paused
-    callback?()
+    enable_step()
+    enable_run_pause 'run'
+    mirror.setOption 'readOnly', false
+    select_line()
+    put_out_fire()
   setTimeout finalize, 100
 
-estimate_speed = ->
-  cycles = last_cycles - run_cycle_start
-  ms = new Date - run_time
-  khz = Math.round(cycles / ms)
-  console.log "est speed: #{khz}kHz"
+compile_program = ->
+  raw = mirror.getValue()
+  console.log 'program is now:', raw
+  window.load_program raw
+
+run = ->
+  console.log "run()"
+  mirror.setOption 'readOnly', true
+  enable_run_pause 'pause'
+  clear_selected_line()
+  disable_step()
+  emu.sync = false
+  emu.resume()
+  emu.run ->
+    goto 'done'
+
+step = ->
+  console.log "step()"
+  mirror.setOption 'readOnly', true
+  emu.sync = true
+  emu.step()
+  emu.call_back()
+  if emu._halt
+    goto 'done'
+  else
+    select_line()
+
+pause = ->
+  console.log "pause()"
+  enable_run_pause 'run'
+  enable_step()
+  emu.pause()
+  finalize = ->
+    select_line()
+    emu.call_back()
+  setTimeout finalize, 100
+
+done = ->
+  console.log "done()"
+  emu.call_back()
+  disable_run_pause()
+  disable_step()
+  clear_selected_line()
 
 put_out_fire = ->
   $('#on-fire').hide()
@@ -120,57 +151,35 @@ put_out_fire = ->
 dcpu_fire = ->
   $('#on-fire').show()
 
-run = ->
-  toggle_run_pause()
-  clear_selected_line()
-  disable_steps()
-  emu.sync = false
-  emu.resume()
-  emu.run -> goto 'done'
-
-step = ->
-  put_out_fire()
-  emu.sync = true
-  resume() if paused
-  emu.step()
-  emu.call_back()
-  if emu._halt
-    program_done()
-  select_line()
-
-pause = ->
-  toggle_run_pause()
-  enable_steps()
-  paused = true
-  emu.pause()
-  finalize = ->
-    select_line()
-    emu.call_back()
-    estimate_speed()
-  setTimeout finalize, 100
-  # select_line()
-
-enable_steps = ->
+enable_step = ->
   $('#step,#over').attr 'disabled', false
 
-disable_steps = ->
+disable_step = ->
   $('#step,#over').attr 'disabled', true
 
 disable_run_pause = ->
   $('#run_pause').attr 'disabled', true
   
-
-toggle_run_pause = ->
+enable_run_pause = (mode) ->
   btn = $('#run_pause')
-  btn.toggleClass 'run'
-  btn.find('i').toggleClass 'hidden'
-  btn.toggleClass 'btn-primary'
-  btn.toggleClass 'btn-danger'
-  if btn.hasClass 'run'
+  btn.attr 'disabled', false
+  if mode == 'run'
+    btn.addClass 'run'
+    btn.removeClass 'pause'
     btn.html btn.html().replace('Stop', 'Run')
+    $('#run-icon').removeClass 'hidden'
+    $('#pause-icon').addClass 'hidden'
+    btn.addClass 'btn-primary'
+    btn.removeClass 'btn-danger'
   else
+    btn.addClass 'pause'
+    btn.removeClass 'run'
     btn.html btn.html().replace('Run', 'Stop')
-
+    $('#run-icon').addClass 'hidden'
+    $('#pause-icon').removeClass 'hidden'
+    btn.removeClass 'btn-primary'
+    btn.addClass 'btn-danger'
+  
 link_registers = ->
   $('.reg-val').each ->
     elem = $(this)
@@ -186,38 +195,43 @@ pad_left = (str, len, pad) ->
     str = pad + str
   str
 
-window.kick_off = ->
-  init_emulator()
-  link_registers()
+update_cycles = ->
   emu.on_cycles (tc) ->
     diff = tc - last_cycles
     last_cycles = tc
     $('.total-cycles').text("#{tc} (+#{diff})")
-  emu.on_breakpoint -> pause()
 
-$('#step').click ->
-  return if $(this).attr('disabled')
-  step()
+pause_on_breakpoints = ->
+  emu.on_breakpoint ->
+    action 'pause'
 
-$('#run_pause').click ->
-  if $(this).hasClass 'run'
-    run()
-  else
-    pause()
+setup_codemirror = ->
+  mirror = CodeMirror.fromTextArea $('#code')[0],
+    lineNumbers: true
+    mode: 'dasm'
+    theme: 'ambiance'
+    tabSize: 2
+    electricChars: false
+    autoClearEmptyLines: true
+    lineWrapping: true
+    matchBrackets: true
+    readOnly: false
 
-$('#reset').click ->
-  put_out_fire()
-  reset()
+window.kick_off = ->
+  init_emulator()
+  link_registers()
+  update_cycles()
+  pause_on_breakpoints()
+  setup_codemirror()
 
-$('#over').click ->
-  return if $(this).attr('disabled')
-  emu.step_over()
-  select_line()
+action_map =
+  '#step': 'step'
+  '#run_pause.run': 'start'
+  '#run_pause.pause': 'pause'
+  '#reset': 'reset'
 
-code.find('li').live 'click', ->
-  line = $(this).index() + 1
-  addr = program.breakpoint_addr line
-  line = program.line_map[addr].lineno
-  li = code.find("li:nth-child(#{line})")
-  li.toggleClass 'breakpoint'
-  emu.set_breakpoint addr, li.hasClass('breakpoint')
+for sel, name of action_map
+  do (name) ->
+    $(sel).live 'click', ->
+      return if $(this).attr 'disabled'
+      action name
