@@ -83,7 +83,7 @@ select_line = ->
   clear_selected_line()
   if line = emu.line()
     line--
-    selected_line = mirror.setLineClass line, null, 'activeline'
+    selected_line = mirror.setLineClass line, null, 'emu-line'
     {x, y} = mirror.charCoords {line, ch: 1}
     mirror.scrollTo x, y
 
@@ -97,7 +97,7 @@ reset = ->
     enable_step()
     enable_run_pause 'run'
     mirror.setOption 'readOnly', false
-    select_line()
+    clear_selected_line()
     put_out_fire()
   setTimeout finalize, 100
 
@@ -206,6 +206,7 @@ pause_on_breakpoints = ->
     action 'pause'
 
 setup_codemirror = ->
+  cursor_line = null
   mirror = CodeMirror.fromTextArea $('#code')[0],
     lineNumbers: true
     mode: 'dasm'
@@ -216,7 +217,14 @@ setup_codemirror = ->
     lineWrapping: true
     matchBrackets: true
     readOnly: false
-
+    onCursorActivity: ->
+      if cursor_line != selected_line
+        mirror.setLineClass cursor_line, null, null
+      cursor_line = mirror.getLineHandle mirror.getCursor().line
+      if cursor_line != selected_line
+        mirror.setLineClass cursor_line, null, 'cursor-line'
+  cursor_line = mirror.setLineClass 0, 'cursor-line'
+  
 window.kick_off = ->
   init_emulator()
   link_registers()

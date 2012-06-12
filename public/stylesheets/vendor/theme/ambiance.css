@@ -76,8 +76,12 @@
   border-left: 1px solid #7991E8;
 }
 
-.cm-s-ambiance .activeline {
-  background: none repeat scroll 0% 0% rgba(255, 255, 255, 0.031);
+.cm-s-ambiance .cursor-line {
+  background: none repeat scroll 0% 0% rgba(255, 255, 255, 0.100);
+}
+
+.cm-s-ambiance .emu-line {
+  background: none repeat scroll 0% 0% rgba(255, 255, 255, 0.250);
 }
 
 .cm-s-ambiance,
