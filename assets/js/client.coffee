@@ -30,7 +30,7 @@ states =
   reset:
     enter: -> reset()
     start: -> goto 'running'
-    step: -> step(); goto 'paused'
+    step: -> goto 'paused'; step()
     leave: -> compile_program()
     
   running:
