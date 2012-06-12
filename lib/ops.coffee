@@ -1,6 +1,8 @@
 require.define ?= require('./require-define')(module, exports, __dirname, __filename)
 require.define './ops', (require, module, exports, __dirname, __filename) ->
 
+  consts = require './consts'
+
   pad_left = (str, len, pad) ->
     until str.length >= len
       str = pad + str
@@ -208,3 +210,10 @@ require.define './ops', (require, module, exports, __dirname, __filename) ->
     print: (a) ->
       emu.cycles 4
       console.log "DCPU: 0x#{hex a.get()}"
+
+  nul = ->
+
+  module.exports.basic = for name in consts.basic
+    if name then module.exports[name.toLowerCase()] else nul
+  module.exports.extended = for name in consts.extended
+    if name then module.exports[name.toLowerCase()] else nul

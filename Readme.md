@@ -1,12 +1,11 @@
 = Features To Do
 
-* Refactor control code
-* Fix bugs (stepping)
 * Precompiler
   * const: a label that just refers to a constant
   * os_call: trigger a named interrupt
 * Meta commands
   * include: load another file raw at this location
+  * require: make sure file is loaded befoer this one
   * break: set a breakpoint on the following op on load
 * Multi-file support: included files appear separate in emulator
 * Watch variables: support registers and mem, both hex and ascii

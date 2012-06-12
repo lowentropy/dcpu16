@@ -55,10 +55,12 @@ window.load_program = (raw) ->
   program = window.program = new Program
   program.load raw
   emu.load_program program
+  select_line()
 
 init_emulator = ->
-  emu = window.emu = new Emulator sync: true, max_queue_length: 5
+  emu = window.emu = new Emulator
   emu.on_fire dcpu_fire
+  emu.on_done -> goto 'done'
   attach_clock()
   attach_monitor()
 
@@ -84,20 +86,18 @@ select_line = ->
   if line = emu.line()
     line--
     selected_line = mirror.setLineClass line, null, 'emu-line'
-    {x, y} = mirror.charCoords {line, ch: 1}
-    mirror.scrollTo x, y
+    # {x, y} = mirror.charCoords {line, ch: 1}
+    # mirror.scrollTo x, y
 
 reset = ->
   console.log "reset()"
-  emu._halt = true
+  emu.pause()
   finalize = ->
-    emu.halt_devices()
     emu.reset()
-    emu.call_back()
     enable_step()
     enable_run_pause 'run'
     mirror.setOption 'readOnly', false
-    clear_selected_line()
+    select_line()
     put_out_fire()
   setTimeout finalize, 100
 
@@ -112,21 +112,13 @@ run = ->
   enable_run_pause 'pause'
   clear_selected_line()
   disable_step()
-  emu.sync = false
-  emu.resume()
-  emu.run ->
-    goto 'done'
+  emu.run()
 
 step = ->
   console.log "step()"
   mirror.setOption 'readOnly', true
-  emu.sync = true
   emu.step()
-  emu.call_back()
-  if emu._halt
-    goto 'done'
-  else
-    select_line()
+  select_line()
 
 pause = ->
   console.log "pause()"
@@ -223,8 +215,26 @@ setup_codemirror = ->
       cursor_line = mirror.getLineHandle mirror.getCursor().line
       if cursor_line != selected_line
         mirror.setLineClass cursor_line, null, 'cursor-line'
+    onGutterClick: (unused, line) ->
+      line = breakpoint_line line+1
+      info = mirror.lineInfo line-1
+      if info.markerText
+        clear_breakpoint line
+        mirror.clearMarker line-1
+      else
+        set_breakpoint line
+        mirror.setMarker line-1, "<span style=\"color: #900\">●</span> %N%"
   cursor_line = mirror.setLineClass 0, 'cursor-line'
-  
+
+breakpoint_line = (line) ->
+  line
+
+set_breakpoint = (line) ->
+  console.log 'set breakpoint:', line
+
+clear_breakpoint = (line) ->
+  console.log 'clear breakpoint:', line
+
 window.kick_off = ->
   init_emulator()
   link_registers()

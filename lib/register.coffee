@@ -4,7 +4,6 @@ require.define './register', (require, module, exports, __dirname, __filename) -
   module.exports = class Register
     constructor: (@name) ->
       @value = 0
-      @callback = ->
   
     get: ->
       @value
@@ -16,6 +15,6 @@ require.define './register', (require, module, exports, __dirname, __filename) -
     call_back: ->
       if @_dirty
         @_dirty = false
-        @callback(@value)
+        @callback(@value) if @callback
 
     on_set: (@callback) ->

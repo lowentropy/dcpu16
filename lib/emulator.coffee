@@ -6,23 +6,25 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
   Register = require './register'
   Operand = require './operand'
 
+  reg_names = 'a b c x y z i j ia sp pc ex'.split(' ')
 
   module.exports = class Emulator
     constructor: (opts={}) ->
-      {@sync, @real_time, @max_queue_length} = opts
+      { @real_time, @max_queue_length, @chunk_size } = opts
       @max_queue_length ?= 256
+      @chunk_size ?= 100
       ops.init this
       @devices = []
-      for reg in 'a b c x y z i j ia sp pc ex'.split(' ')
+      @_mem_hooks = {}
+      @all_registers = for reg in reg_names
         @[reg] = new Register reg
       @registers = [@a, @b, @c, @x, @y, @z, @i, @j]
-      @all_registers = @registers.concat [@pc, @sp, @ex, @ia]
-      @_cycles_callback = ->
+      @fire_callback = @default_fire_callback
       @reset()
       
     reset: ->
-      reg.set 0 for reg in @registers
-      @pc.set 0; @sp.set 0; @ex.set 0
+      @halt()
+      reg.set 0 for reg in @all_registers
       @_mem = (0 for i in [0x0000..0xffff])
       @_halt = false    
       @_on_fire = false  
@@ -33,15 +35,13 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @_next_trigger = 1
       @mem_triggers = {}
       @queue = []
-      @load_program(@program, false) if @program
-      @callback = ->
       @_chunk = 0
-      @_nul = ->
+      @call_back()
   
     load_program: (@program, clear_breakpoints=true) ->
       @breakpoints = {} if clear_breakpoints
-      console.log "LOADING PROGRAM"
       @_mem[i] = word for word, i in @program.to_bin()
+      @program
     
     line: ->
       @program?.line_map?[@pc.get()]?.lineno
@@ -62,8 +62,7 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
     trigger_interrupt: (message) ->
       if @iq_enabled
         @queue_interrupt message
-        return
-      if 0 != (ia = @ia.get())
+      else if ia = @ia.get()
         @enable_iq()
         @push @pc.get()
         @push @a.get()
@@ -72,27 +71,28 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
   
     queue_interrupt: (message) ->
       if @queue.length >= @max_queue_length
-        return @catch_fire()
-      @queue.push message
+        @catch_fire()
+      else
+        @queue.push message
 
     catch_fire: ->
-      unless @_on_fire
-        if @fire_callback
-          @fire_callback()
-        else
-          console.log ">>> DCPU ON FIRE! <<<"
+      @fire_callback() unless @_on_fire
       @_on_fire = true
       @halt()
+    
+    default_fire_callback: ->
+      console.log ">>> DCPU ON FIRE! <<<"
     
     pause: ->
       @_halt = true
       @_paused = true
       device.pause() for device in @devices
+      null
     
     resume: ->
-      @_halt = false
+      if @_paused
+        device.resume() for device in @devices
       @_paused = false
-      device.resume() for device in @devices
     
     on_fire: (@fire_callback) ->
     
@@ -117,13 +117,15 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @_mem[addr] = value
       for key, {from, to, callback} of @mem_triggers
         callback(addr, value) if from <= addr < to
+      null
   
     mem_get: (addr) ->
       @_mem[addr & 0xffff]
   
     mem: (addr) ->
-      get: => @mem_get(addr)
-      set: (value) => @mem_set(addr, value)
+      @_mem_hooks[addr] ?= {
+        set: (value) => @mem_set(addr, value)
+        get: => @mem_get(addr)}
   
     pop: ->
       value = @mem_get @sp.get()
@@ -135,16 +137,14 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @cycles 1
       @advance()
       @read_args()
-      # FIXME: there's a bug here; we want to read the args but NOT to evaluate things like POP...
-      # TODO: express this bug in a test, then fix it...
       @skip() if @instruction_is_if()
 
     advance: ->
       @inst = @get_word()
 
     get_word: ->
-      word = @mem_get @pc.get()
-      @pc.set @pc.get() + 1
+      word = @mem_get(pc = @pc.get())
+      @pc.set(pc + 1)
       word
 
     instruction_is_if: ->
@@ -156,67 +156,68 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
     disable_iq: ->
       @iq_enabled = false
   
-    step: ->
+    _step: ->
       @_cycles = 0
-      return if !@skip_next_bp && @stop_on_breakpoint()
-      @skip_next_bp = false
-      @advance()
-      return @halt() unless @inst
-      @read_args()
-      @perform()
+      if @stop_on_breakpoint()
+        @_halt = true
+      else if !@advance()
+        @halt()
+        @_done_callback() if @_done_callback
+      else
+        @read_args()
+        @perform()
+        @check_queue()
+
+    step: ->
+      @resume()
+      @_step()
+      @call_back()
+
+    check_queue: ->
       if @queue.length && !@iq_enabled && !@recent_rfi
         @trigger_interrupt @queue.shift()
       @recent_rfi = false
-      unless @_halt || @sync
-        # process.nextTick (=> @step()) unless @_halt || @sync
-        if @_chunk++ >= 100
-          @_chunk = 0
-          @call_back()
-          process.nextTick (=> @step()) unless @_halt || @sync
-        else
-          @step()
     
     stop_on_breakpoint: ->
       addr = @pc.get()
-      if @breakpoints[addr]
-        @_breakpoint_callback?()
+      skip = @skip_next_bp
+      @skip_next_bp = false
+      if !skip && @breakpoints[addr]
+        @_breakpoint_callback() if @_breakpoint_callback
         true
       else
         false
     
     call_back: ->
       reg.call_back() for reg in @all_registers
-      @_cycles_callback @total_cycles
+      @_cycles_callback @total_cycles if @_cycles_callback
     
     on_cycles: (@_cycles_callback) ->
     on_breakpoint: (@_breakpoint_callback) ->
-    
-    step_over: ->
-      if @next_is_jsr()
-        next = @pc.get() + 1
-        @step() until @_halt or @pc.get() == next
-      else
-        @step() unless @_halt
   
     next_is_jsr: ->
       (@mem[@pc.get()] & 0x3ff) == 0x20
   
     halt: ->
       @_halt = true
-      @halt_devices()
-      @callback() unless @sync
-    
-    halt_devices: ->
       device.halt() for device in @devices
-  
-    run: (callback) ->
+    
+    run: ->
+      @resume()
       @skip_next_bp = true
-      @callback = callback if callback
-      if @sync
-        @step() until @_halt
-        @callback() unless @_paused
-      else
-        @step()
+      @_halt = false
+      @_run()
+    
+    _run: ->
+      while !@_halt
+        @_step()
+        if @_chunk++ >= @chunk_size
+          @_chunk = 0
+          process.nextTick (=> @_run())
+          break     
+      @call_back()   
+  
+    on_done: (@_done_callback) ->
   
     dump: ->
       for value, addr in @_mem
@@ -229,15 +230,11 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
         @_b.reset (@inst >> 5) & 0x1f
 
     perform: ->
-      op = @inst & 0x1f
       @_a.get()
-      if op == 0
-        fun = consts.extended[(@inst >> 5) & 0x1f].toLowerCase()
-        (ops[fun] || @_nul)(@_a)
-      else
-        fun = consts.basic[op]?.toLowerCase()
-        @error "Unknown operator: #{op}" unless fun
-        (ops[fun] || @_nul)(@_b, @_a)
+      if op = @inst & 0x1f
+        ops.basic[op](@_b, @_a)
+      else if ext = (@inst >> 5) & 0x1f
+        ops.extended[ext](@_a)
     
     error: (msg) ->
       throw new Error "#{msg} (line #{@line()})"

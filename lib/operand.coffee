@@ -16,7 +16,11 @@ require.define './operand', (require, module, exports, __dirname, __filename) ->
       @cached = null
   
     get: ->
-      @cached ?= @loc().get()
+      loc = @loc()
+      unless loc.get
+        console.log this, 'has no loc!', loc
+      @cached ?= loc.get()
+      # @cached ?= @loc().get()
   
     set: (value) ->
       @loc().set(value)

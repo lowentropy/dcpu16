@@ -56,6 +56,7 @@
 }
 
 .cm-s-ambiance .CodeMirror-gutter {
+  width: 3em;
   background: #3D3D3D;
   padding: 0 5px;
   text-shadow: #333 1px 1px;

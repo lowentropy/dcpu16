@@ -57,6 +57,7 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
           c = cs[(g >> 31) & 1]
           @adapter?.draw x, y--, c
           g <<= 1
+      null
 
     char: (index) ->
       if @font_address
