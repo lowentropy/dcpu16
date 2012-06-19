@@ -17,6 +17,7 @@ code = $ '#code'
 breakpoints = {}
 files = JSON.parse $('#files').text()
 file = null
+chosen = null
 
 
 state = 'reset'
@@ -53,12 +54,18 @@ states =
     enter: -> done()
     reset: -> goto 'reset'
 
-file_source = (name) -> files[name]
+file_source = (name) ->
+  files[name]
+
+chose_file = (name) ->
+  console.log '-->', name
+  $('.chosen-file').text name
+  file = name
+  mirror.setValue files[name]
 
 choose_file = (name) ->
-  $('.chosen-file').text name
-  mirror.setValue files[name]
-  file = name
+  chosen = name
+  chose_file name
   compile_program()
 
 init_emulator = ->
@@ -89,9 +96,7 @@ select_line = ->
   clear_selected_line()
   if line = emu.line()
     name = emu._line().file
-    if file != name
-      mirror.setValue files[name]
-      file = name
+    chose_file name if file != name
     line--
     selected_line = mirror.setLineClass line, null, 'emu-line'
     # {x, y} = mirror.charCoords {line, ch: 1}
@@ -105,7 +110,8 @@ reset = ->
     enable_step()
     enable_run_pause 'run'
     mirror.setOption 'readOnly', false
-    select_line()
+    chose_file chosen
+    # select_line()
     put_out_fire()
   setTimeout finalize, 100
 
@@ -116,7 +122,7 @@ compile_program = ->
   else
     program.load_raw mirror.getValue()
   emu.load_program program
-  select_line()
+  # select_line()
 
 run = ->
   console.log "run()"
