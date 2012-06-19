@@ -1,13 +1,14 @@
 = Features To Do
 
+* Multi-file support
+  * Show *current* file, now that _require_ works
+  * Make breakpoints work with multiple files
+  * Post changed files to server, save to disk
 * Precompiler
   * const: a label that just refers to a constant
   * os_call: trigger a named interrupt
 * Meta commands
-  * include: load another file raw at this location
-  * require: make sure file is loaded befoer this one
   * break: set a breakpoint on the following op on load
-* Multi-file support: included files appear separate in emulator
 * Watch variables: support registers and mem, both hex and ascii
 * Show changes when stepping
 
