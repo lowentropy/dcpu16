@@ -32,6 +32,11 @@ app.configure 'production', ->
 app.get '/', (req, res) ->
   res.render 'index', files: programs.files
 
+app.post '/save', (req, res) ->
+  {name, body} = req.body.data
+  programs.save name, body
+  res.end 'OK'
+
 app.listen 3000
 
 programs.on_update (name, content) ->

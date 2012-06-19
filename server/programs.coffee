@@ -35,6 +35,9 @@ load_file = (file, prefix, callback) ->
     files[prefix] = content
     callback?()
 
+save = (file, body) ->
+  fs.writeFileSync "#{base}/#{file}", body
+
 scan_dir base, null
 
-module.exports = {files, on_update}
+module.exports = {files, on_update, save}

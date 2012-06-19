@@ -4,4 +4,4 @@ require req/b
 
 :main
 jsr _a
-sub pc, 1
+sub pc, 3

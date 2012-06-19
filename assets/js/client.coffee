@@ -214,6 +214,11 @@ update_cycles = ->
 pause_on_breakpoints = ->
   emu.on_breakpoint ->
     action 'pause'
+    
+update_file = (name) ->
+  $.post '/save', type: 'POST', data: {name, body: files[name]}
+
+lazily_update = _.throttle update_file, 1000
 
 setup_codemirror = ->
   cursor_line = null
@@ -228,7 +233,9 @@ setup_codemirror = ->
     matchBrackets: true
     readOnly: false
     onChange: ->
-      files[file] = mirror.getValue() if file
+      if file
+        files[file] = mirror.getValue()
+        lazily_update file
     onCursorActivity: ->
       if cursor_line != selected_line
         mirror.setLineClass cursor_line, null, null

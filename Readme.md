@@ -1,9 +1,7 @@
 = Features To Do
 
 * Multi-file support
-  * Show *current* file, now that _require_ works
   * Make breakpoints work with multiple files
-  * Post changed files to server, save to disk
 * Precompiler
   * const: a label that just refers to a constant
   * os_call: trigger a named interrupt
