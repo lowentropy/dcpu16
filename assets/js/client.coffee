@@ -88,6 +88,10 @@ clear_selected_line = ->
 select_line = ->
   clear_selected_line()
   if line = emu.line()
+    name = emu._line().file
+    if file != name
+      mirror.setValue files[name]
+      file = name
     line--
     selected_line = mirror.setLineClass line, null, 'emu-line'
     # {x, y} = mirror.charCoords {line, ch: 1}

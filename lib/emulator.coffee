@@ -43,8 +43,11 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @_mem[i] = word for word, i in @program.to_bin()
       @program
     
+    _line: ->
+      @program?.line_map?[@pc.get()]
+    
     line: ->
-      @program?.line_map?[@pc.get()]?.lineno
+      @_line()?.lineno
     
     set_breakpoint: (addr, enabled=true) ->
       @breakpoints[addr] = enabled
