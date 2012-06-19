@@ -1,0 +1,5 @@
+require req/b
+:_a
+set a, 7
+jsr _b
+set pc, pop

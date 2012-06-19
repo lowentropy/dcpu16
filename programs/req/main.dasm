@@ -1,0 +1,7 @@
+require req/boot
+require req/a
+require req/b
+
+:main
+jsr _a
+sub pc, 1

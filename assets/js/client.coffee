@@ -1,8 +1,8 @@
 #= require ../../lib/require-define
 #= require_tree ../../lib
 #= require ./alert
-#= require ./programs
 #= require ./breakpoints
+#= require ./underscore
 
 Program = require './program'
 Emulator = require './emulator'
@@ -14,6 +14,10 @@ program = null
 emu = null
 mirror = null
 code = $ '#code'
+breakpoints = {}
+files = JSON.parse $('#files').text()
+file = null
+
 
 state = 'reset'
 goto = (name) ->
@@ -49,13 +53,13 @@ states =
     enter: -> done()
     reset: -> goto 'reset'
 
+file_source = (name) -> files[name]
 
-window.load_program = (raw) ->
-  mirror.setValue raw
-  program = window.program = new Program
-  program.load raw
-  emu.load_program program
-  select_line()
+choose_file = (name) ->
+  $('.chosen-file').text name
+  mirror.setValue files[name]
+  file = name
+  compile_program()
 
 init_emulator = ->
   emu = window.emu = new Emulator
@@ -102,9 +106,13 @@ reset = ->
   setTimeout finalize, 100
 
 compile_program = ->
-  raw = mirror.getValue()
-  console.log 'program is now:', raw
-  window.load_program raw
+  program = window.program = new Program source: file_source
+  if file
+    program.load_file file
+  else
+    program.load_raw mirror.getValue()
+  emu.load_program program
+  select_line()
 
 run = ->
   console.log "run()"
@@ -209,6 +217,8 @@ setup_codemirror = ->
     lineWrapping: true
     matchBrackets: true
     readOnly: false
+    onChange: ->
+      files[file] = mirror.getValue() if file
     onCursorActivity: ->
       if cursor_line != selected_line
         mirror.setLineClass cursor_line, null, null
@@ -216,24 +226,23 @@ setup_codemirror = ->
       if cursor_line != selected_line
         mirror.setLineClass cursor_line, null, 'cursor-line'
     onGutterClick: (unused, line) ->
-      line = breakpoint_line line+1
-      info = mirror.lineInfo line-1
+      line = program.breakpoint_line line+1
+      return unless line
+      index = line.lineno - 1
+      info = mirror.lineInfo index
       if info.markerText
         clear_breakpoint line
-        mirror.clearMarker line-1
+        mirror.clearMarker index
       else
         set_breakpoint line
-        mirror.setMarker line-1, "<span style=\"color: #900\">●</span> %N%"
+        mirror.setMarker index, "<span style=\"color: #900\">●</span> %N%"
   cursor_line = mirror.setLineClass 0, 'cursor-line'
 
-breakpoint_line = (line) ->
-  line
-
 set_breakpoint = (line) ->
-  console.log 'set breakpoint:', line
+  breakpoints[line.addr] = true
 
 clear_breakpoint = (line) ->
-  console.log 'clear breakpoint:', line
+  delete breakpoints[line.addr]
 
 window.kick_off = ->
   init_emulator()
@@ -253,3 +262,8 @@ for sel, name of action_map
     $(sel).live 'click', ->
       return if $(this).attr 'disabled'
       action name
+
+$ ->
+  $('#file-choices li').click ->
+    name = $(this).text().trim()
+    choose_file name

@@ -3,63 +3,71 @@ require.define './program', (require, module, exports, __dirname, __filename) ->
 
   Line = require './line'
   path = require 'path'
+  ProgramFile = require './program_file'
+  _ = require 'underscore'
 
   module.exports = class Program
   
-    constructor: ->
-      @filename = '<raw>'
+    constructor: (opts = {}) ->
       @labels = {}
-      @active_files = {}
+      @_main = null
+      @_file_map = {}
+      @_files = []
+      @_source = opts.source
     
-    name: ->
-      if @filename == '<raw>'
-        'untitled'
-      else
-        path.basename @file
-  
-    load_from_file: (@filename) ->
-      @active_files = {}
-      @active_files[@name()] = true
-      @load @fs().readFileSync(@filename).toString()
+    load_file: (name) ->
+      @load_raw @read_file(name), name
+    
+    load_raw: (raw, @name='<raw>') ->
+      @_main = new ProgramFile this, @name, raw
+      @_main.parse_requires()
+      @load()
+        
+    read_file: (name) ->
+      raw = @_source name
+      throw new Error "Can't find file: #{name}" unless raw
+      raw
+    
+    add_file: (file) ->
+      @_files.push file
+    
+    file: (name) ->
+      @_file_map[name]
+    
+    require: (name) ->
+      return if @_file_map[name]
+      raw = @read_file name
+      file = new ProgramFile this, name, raw
+      @_file_map[name] = file
+      file.parse_requires()
   
     fs: ->
       @_fs ?= require 'fs'
   
-    load: (@raw) ->
+    load: ->
       @split_lines()
       @record_labels()
       @parse_lines()
       @assign_addresses()
       @compile()
-    
-    watch: (callback) ->
-      # TODO
-      @watched = true
-    
-    unwatch: ->
-      return unless @watched
-      # TODO
-      @watched = false
   
     split_lines: ->
       @lines = []
-      @line_num_map = {}
-      for line, index in @raw.split "\n"
-        continue unless line.length
-        line = new Line this, line, @name(), index+1
-        @lines.push line
-        @line_num_map[index+1] = line
-      # @lines.pop() unless @lines[@lines.length - 1]
+      for file in @_files
+        lines = for line, index in file.raw.split "\n"
+          line = line.trim()
+          if line.length
+            new Line this, line, file.name, index+1
+          else
+            Line.empty this, file.name, index+1
+        @lines = @lines.concat lines
     
-    breakpoint_addr: (num) ->
-      while num <= @lines[@lines.length-1].lineno
-        line = @line_num_map[num]
-        index = @lines.indexOf line
-        break if index >= 0
-        num++
+    breakpoint_line: (num) ->
+      line = @lines[num - 1]
+      index = line.lineno - 1
       while line && !line.is_op()
         line = @lines[++index]
-      line.addr
+      line
   
     record_labels: ->
       labels = []

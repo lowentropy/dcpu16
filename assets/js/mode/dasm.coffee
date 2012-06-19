@@ -21,7 +21,7 @@
     'shl', 'ifb', 'ifc', 'ife', 'ifn', 'ifg', 'ifa'
     'ifl', 'ifu', 'adx', 'sbx', 'sti', 'std', 'jsr'
     'int', 'iag', 'ias', 'rfi', 'iaq', 'hwn', 'hwq'
-    'hwi', 'dat'
+    'hwi', 'dat', 'require'
   ]
   
   special = [

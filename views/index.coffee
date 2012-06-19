@@ -102,6 +102,7 @@ html lang: 'en', ->
         text JSON.stringify(@files)
 
       # vendor scripts
+      script src: '/javascripts/vendor/underscore.min.js'
       script src: '/javascripts/vendor/jquery.min.js'
       script src: '/javascripts/vendor/require.min.js'
       script src: '/javascripts/vendor/codemirror.js'
