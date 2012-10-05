@@ -28,6 +28,11 @@
     message (1)
     set_message (1)
     owner (1)
+  Known Hardware
+    manufacturer_id (2)
+    hardware_id (2)
+    version (1)
+    description (str)
   Process (13 -> 16) x 64   = 1   kw
     XYZABCIJ (8)
     PC,SP,EX (3)

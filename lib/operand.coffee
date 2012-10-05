@@ -9,32 +9,31 @@ require.define './operand', (require, module, exports, __dirname, __filename) ->
       @literal_loc =
         get: => (@code - 0x21) & 0xffff
         set: ->
-  
+
     reset: (@code) ->
       @get_word()
       @_loc = null
       @cached = null
-  
+
     get: ->
       loc = @loc()
       unless loc.get
         console.log this, 'has no loc!', loc
       @cached ?= loc.get()
-      # @cached ?= @loc().get()
-  
+
     set: (value) ->
       @loc().set(value)
-  
+
     get_word: ->
       if @needs_word()
         @word = @emu.get_word()
-  
+
     needs_word: ->
       (0x10 <= @code < 0x18) ||
       (@code == 0x1a) ||
       (@code == 0x1e) ||
       (@code == 0x1f)
-  
+
     loc: ->
       @_loc ?= if @code < 0x08
         @emu.registers[@code]

@@ -1,5 +1,3 @@
-dat 0
-
 ;     in A - number of pages
 ;     in B - owner
 ;    out C - base address, or 0 if fail
@@ -35,7 +33,7 @@ dat 0
   set c, 0
   set z, 0x100
 :_fa_climb
-  ifn [page_table_addr+i], 0
+  ifn [page_table+i], 0
     set pc, _fa_found
   shl c, 1
   ife c, 0
@@ -45,22 +43,22 @@ dat 0
   shl z, 1
   set pc, _fa_climb
 :_fa_found
-  ifn [page_table_addr+i], b
+  ifn [page_table+i], b
     set pc, _fa_fail
 :_fa_free_page
-  set [page_table_addr+i], z
+  set [page_table+i], z
   ife i, 0
     set pc, pop
   sub i, 1
   xor i, 1
   add i, 1
-  ifn [page_table_addr+i], z
+  ifn [page_table+i], z
     set pc, _fa_zip_up
-  set [page_table_addr+i], 0
+  set [page_table+i], 0
   sub i, 1
   xor i, 1
   add i, 1
-  set [page_table_addr+i], 0
+  set [page_table+i], 0
   sub i, 1
   shr i, 1
   shl z, 1
@@ -68,9 +66,9 @@ dat 0
 :_fa_zip_up
   sub i, 1
   shr i, 1
-  ifl z, [page_table_addr+i]
+  ifl z, [page_table+i]
     set pc, pop
-  set [page_table_addr+i], z
+  set [page_table+i], z
   ife i, 0
     set pc, pop
   set pc, _fa_zip_up
@@ -86,7 +84,7 @@ dat 0
 :claim_pages
   set [a], b
   set i, a
-  sub i, page_table_addr
+  sub i, page_table
   set c, i
   set x, [lg_num_pages]
   sub x, j ; (i - 2^l + 1) << (2-l)
@@ -99,16 +97,16 @@ dat 0
 :_cp_loop
   ife i, 0
     set pc, pop
-  set x, [page_table_addr+i]
+  set x, [page_table+i]
   sub i, 1
   xor i, 1
   add i, 1
-  set y, [page_table_addr+i]
+  set y, [page_table+i]
   ifg y, x
     set x, y
   sub i, 1
   shr i, 1
-  set [page_table_addr+i], x
+  set [page_table+i], x
   sub j, 1
   set pc, _cp_loop
 
@@ -122,7 +120,7 @@ dat 0
   set j, 0xFFFF
   set z, [num_pages]
   shl z, 1
-  set b, [page_table_addr+i]
+  set b, [page_table+i]
   shr b, 8
 :_fpe_loop
   shr z, 1
@@ -135,13 +133,13 @@ dat 0
     jsr split_page
   shl i, 1
   add i, 1
-  set b, [page_table_addr+i]
+  set b, [page_table+i]
   shr b, 8
   ifl b, a
     add pc, 2
   set pc, _fpe_loop
   add i, 1
-  set b, [page_table_addr+i]
+  set b, [page_table+i]
   shr b, 8
   set pc, _fpe_loop
 :_fpe_fail
@@ -149,7 +147,7 @@ dat 0
   set pc, pop
 :_fpe_found
   set b, i
-  add b, page_table_addr
+  add b, page_table
   set pc, pop
 
 ; in I - index of page entry to split
@@ -159,21 +157,28 @@ dat 0
   shl z, 7
   shl i, 1
   add i, 1
-  set [page_table_addr+i], z
+  set [page_table+i], z
   add i, 1
-  set [page_table_addr+i], z
+  set [page_table+i], z
   set i, pop
   shr z, 7
   set pc, pop
 
-:kernel_pages dat 0x0020
-:page_size    dat 0x0100
-:num_pages    dat 0x0100
-:lg_page_size dat 0x0008
-:lg_num_pages dat 0x0008
+:kernel_mem_end dat 0x2000
+:kernel_pages   dat 0x0020
+:page_size      dat 0x0100
+:num_pages      dat 0x0100
+:lg_page_size   dat 0x0008
+:lg_num_pages   dat 0x0008
 
-:page_table_addr ; 512 words
-  dat 0x8001, 0x4001, 0x8000, 0x0001, 0x4000
+0x8001
+0x4001, 0x8000
+0x2001, 0x4000, 0, 0
+0x0001, 0x2000, ...
+
+
+:kernel_page_table ; 512 words
+  dat 0x8001, 0x4001, 0x8000, 0x2001, 0x4000, 0, 0, 0x0001, 0x2000
   dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
@@ -189,4 +194,4 @@ dat 0
   dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
   dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  dat 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

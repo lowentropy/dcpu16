@@ -1,0 +1,75 @@
+:num_devices dat 0
+
+:num_known_manufacturers dat 2
+:num_known_devices dat 3
+
+:known_manufacturers_index
+dat known_manufacturer_generic
+dat known_manufacturer_nya
+
+:known_devices_index
+dat known_device_clock
+dat known_device_keyboard
+dat known_device_screen
+
+:known_manufacturer_generic
+dat 0, 0
+dat "Generic", 0
+
+:known_manufacturer_nya
+dat 0, 0
+dat "Nya Electriska", 0
+
+:known_device_clock
+dat 0, 0                                ; manufacturer id
+dat 0x12D0, 0xB402                      ; hardware id
+dat 1                                   ; version
+dat "Generic Clock (compatible)", 0     ; description
+
+:known_device_keyboard
+dat 0, 0                                ; manufacturer id
+dat 0x30CF, 0x7406                      ; hardware id
+dat 1                                   ; version
+dat "Generic Keyboard (compatible)", 0  ; description
+
+:known_device_screen
+dat 0x1C6C, 0x8B36                      ; manufacturer id
+dat 0x7349, 0xF615                      ; hardware id
+dat 0x1802                              ; version
+dat "LEM1802 - Low Energy Monitor"      ; description
+
+
+:discover_devices
+  hwn i
+  :dds_loop
+    sub i, 1
+    jsr discover_device
+    ifn i, 0
+      set pc, dh_loop
+  set pc, pop
+
+:discover_device ; I contains device index
+  hwq i
+  set j, [num_known_devices]
+  :dd_loop
+    sub j, 1
+    set z, [known_devices_index+j]
+    ife b, [2+z]
+    ife a, [3+z]
+    ife c, [4+z]
+    ife x, [0+z]
+    ife y, [1+z]
+      set pc, dd_assign
+    ifn z, 0
+      set pc, dd_loop
+  set pc, pop
+  :dd_assign
+    set z, [num_devices]
+    shl z, [lg_device_entry_size]
+    add z, [devices]
+    set [0+z], j
+    add [num_devices], 1
+    set pc, pop
+
+:device_entry_size dat 1
+:lg_device_entry_size dat 0
