@@ -1,5 +1,8 @@
 = Features To Do
 
+* Simple bootable kernel
+* SPED-3 and adapter
+* M35FD
 * Multi-file support
   * Make breakpoints work with multiple files
 * Precompiler
@@ -57,7 +60,7 @@
 
 = Bugs
 
-* Things that don't work in strings: , ; \"
+* ";" breaks strings
 
 = Fixed
 
