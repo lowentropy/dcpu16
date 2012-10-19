@@ -10,17 +10,17 @@ require.define './line', (require, module, exports, __dirname, __filename) ->
       @labels = []
       @str = @raw
       @pre_parse()
-    
+
     pre_parse: ->
       @remove_comments()
       @parse_labels()
       @split()
-  
+
     remove_comments: ->
       if -1 < (idx = @str.indexOf ';')
         @comment = @str.substring idx+1
         @str = @str.substring 0, idx
-  
+
     parse_labels: ->
       re = /^\s*:(\w+)/
       while m = re.exec(@str)
@@ -42,11 +42,11 @@ require.define './line', (require, module, exports, __dirname, __filename) ->
         @chomp()
       @op = parts.shift()
       @parts = parts
-    
+
     chomp: ->
       if m = @str.match /^[\s,]+/
         @str = @str.substring m[0].length
-    
+
     read_string: ->
       idx = 1
       escape = false
@@ -58,10 +58,10 @@ require.define './line', (require, module, exports, __dirname, __filename) ->
       str = @str.substring(0, idx + 1)
       @str = @str.substring(idx + 1)
       str
-  
+
     empty: ->
       !@op?
-  
+
     parse: ->
       @contents = if @empty()
         new Noop
@@ -71,15 +71,16 @@ require.define './line', (require, module, exports, __dirname, __filename) ->
         new Noop
       else
         new Operation this, @op, @parts
-  
+
     set_addr: (@addr) ->
-  
+
     is_op: -> @contents.is_op()
     to_bin: -> @contents.to_bin()
     size: -> @contents.size()
 
   class EmptyLine extends Line
     constructor: (@program, @file, @lineno) ->
+      super @program, '', @file, @lineno
     empty: -> true
     is_op: -> false
     to_bin: -> []

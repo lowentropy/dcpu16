@@ -24,6 +24,7 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
 
     reset: ->
       @halt()
+      device.reset() for device in @devices
       reg.set 0 for reg in @all_registers
       @_mem = (0 for i in [0x0000..0xffff])
       @_halt = false

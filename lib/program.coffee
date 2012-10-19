@@ -74,7 +74,7 @@ require.define './program', (require, module, exports, __dirname, __filename) ->
       for line in @lines
         labels.push label for label in line.labels
         continue if line.empty()
-        @labels[label] = line for label in line.labels
+        @labels[label] = line for label in labels
         labels = []
       @end_labels = labels
 

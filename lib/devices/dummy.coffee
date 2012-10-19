@@ -2,12 +2,13 @@ require.define ?= require('../require-define')(module, exports, __dirname, __fil
 require.define './devices/dummy', (require, module, exports, __dirname, __filename) ->
 
   module.exports = class DummyDevice
-    constructor: (@emu) ->
 
     name: 'DUMMY - Dummy Device'
     hardware_id: 0xdeadbeef
     version_id: 0x1337
     manufacturer_id: 0xf007ba11
+
+    constructor: (@emu) ->
 
     send_interrupt: ->
       @emu.a.set 1
@@ -22,3 +23,4 @@ require.define './devices/dummy', (require, module, exports, __dirname, __filena
     halt: ->
     pause: ->
     resume: ->
+    reset: ->

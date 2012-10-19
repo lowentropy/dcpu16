@@ -2,26 +2,35 @@ require.define ?= require('../require-define')(module, exports, __dirname, __fil
 require.define './devices/lem1802', (require, module, exports, __dirname, __filename) ->
 
   module.exports = class LEM1802
-    constructor: (@emu, @adapter) ->
-      @border_color = @default_border_color
-      @blink_interval = @default_blink_interval
-      @font_address = 0
-      @palette_address = 0
-      @screen_address = null
 
     name: 'LEM1802 - Low Energy Monitor'
     hardware_id: 0x7349f615
     version_id: 0x1802
     manufacturer_id: 0x1c6c8b36
-  
+
+    constructor: (@emu, @adapter) ->
+      @reset()
+
+    reset: ->
+      @emu.remove_mem_trigger @screen_trigger
+      @screen_address = null
+      @emu.remove_mem_trigger @font_trigger
+      @font_address = 0
+      @emu.remove_mem_trigger @palette_trigger
+      @palette_address = 0
+      @border_color = @default_border_color
+      @blink_interval = @default_blink_interval
+      @adapter?.set_border_color @color(@border_color)
+      @adapter?.clear()
+
     start: ->
       @reverse = false
       setInterval (=> @blink()), @blink_interval
-    
+
     blink: ->
       @reverse = !@reverse
       @render()
-  
+
     render: ->
       return unless @screen_address
       addr = @screen_address
@@ -29,7 +38,7 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
         for col in [0...32]
           @render_cell addr++
       @adapter?.refresh()
-  
+
     render_cell: (addr, word) ->
       base = addr - @screen_address
       x = base & 0x1f
@@ -64,7 +73,7 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
         @emu.mem_get(@font_address + index)
       else
         @default_font[index]
-  
+
     color: (index) ->
       raw = if @palette_address
         @emu.mem_get(@palette_address + index)
@@ -74,14 +83,14 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
       g = ((raw & 0x00f0) >> 4) * 17
       b = ((raw & 0x000f) >> 0) * 17
       [r,g,b]
-  
+
     send_interrupt: ->
       switch @emu.a.get()
         when 0 then @mem_map_screen()
         when 1 then @mem_map_font()
         when 2 then @mem_map_palette()
         when 3 then @set_border_color()
-  
+
     mem_map_screen: ->
       @emu.remove_mem_trigger @screen_trigger
       if @screen_address = @emu.b.get()
@@ -89,39 +98,39 @@ require.define './devices/lem1802', (require, module, exports, __dirname, __file
           @render_cell addr, word
           @adapter?.refresh()
       @render()
-  
+
     mem_map_font: ->
-      @emu.remove_trigger @font_trigger
+      @emu.remove_mem_trigger @font_trigger
       if @font_address = @emu.b.get()
         @font_trigger = @emu.mem_trigger @font_address, @font_address+0x100, =>
           @render()
       @render()
-  
+
     mem_map_palette: ->
-      @emu.remove_trigger @palette_trigger
+      @emu.remove_mem_trigger @palette_trigger
       if @palette_address = @emu.b.get()
         @palette_trigger = @emu.mem_trigger @palette_address, @palette_address+0x10, =>
           @render()
       @render()
-  
+
     set_border_color: ->
       @border_color = @emu.b.get() & 0xF
       @adapter?.set_border_color @color(@border_color)
-  
+
     halt: ->
     pause: ->
     resume: ->
-    
+
     default_blink_interval: 1000
     default_char: ' '
     default_word: 0xF020
     default_border_color: 0x1
-  
+
     default_palette: [
       0X0000, 0X000A, 0X00A0, 0X00AA, 0X0A00, 0X0A0A, 0X0A50, 0X0AAA
       0X0555, 0X055F, 0X05F5, 0X05FF, 0X0F55, 0X0F5F, 0X0FF5, 0X0FFF
     ]
-  
+
     default_font: [
       0xB79E388E, 0x722C75F4, 0x19BB7F8F, 0x85F9B158
       0x242E2400, 0x082A0800, 0x00080000, 0x08080808
