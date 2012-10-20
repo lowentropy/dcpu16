@@ -9,10 +9,12 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
   reg_names = 'a b c x y z i j ia sp pc ex'.split(' ')
 
   module.exports = class Emulator
+
     constructor: (opts={}) ->
-      { @real_time, @max_queue_length, @chunk_size } = opts
+      { @real_time, @max_queue_length, @chunk_size, @debounce_timeout } = opts
       @max_queue_length ?= 256
       @chunk_size ?= 100
+      @debounce_timeout ?= 100
       ops.init this
       @devices = []
       @_mem_hooks = {}
@@ -35,6 +37,7 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @_b = new Operand this, 'b'
       @_next_trigger = 1
       @mem_triggers = {}
+      @debounce_timers = {}
       @queue = []
       @_chunk = 0
       @call_back()
@@ -115,12 +118,17 @@ require.define './emulator', (require, module, exports, __dirname, __filename) -
       @sp.set(addr = @sp.get() - 1)
       @mem_set addr, value
 
+    debounce: (key, callback) ->
+      clearTimeout @debounce_timers[key]
+      @debounce_timers[key] = setTimeout @debounce_timeout, callback
+
     mem_set: (addr, value) ->
       addr &= 0xffff
       value &= 0xffff
       @_mem[addr] = value
       for key, {from, to, callback} of @mem_triggers
-        callback(addr, value) if from <= addr < to
+        continue unless from <= addr < to
+        @debounce key, -> callback(addr, value)
       null
 
     mem_get: (addr) ->
