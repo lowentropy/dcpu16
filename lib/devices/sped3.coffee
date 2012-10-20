@@ -19,6 +19,7 @@ require.define './devices/sped3', (require, module, exports, __dirname, __filena
       @adapter?.reset()
 
     start: ->
+      @adapter.device = this
 
     send_interrupt: ->
       switch @emu.a.get()
@@ -44,12 +45,14 @@ require.define './devices/sped3', (require, module, exports, __dirname, __filena
       @update_vertices()
 
     set_rotation: ->
-      angle = @real_angle()
+      angle = @angle()
       @target_angle = @emu.x.get() % 360
       @rotate_to_target angle
 
-    real_angle: ->
-      if @rotating
+    angle: ->
+      if @paused
+        @pause_angle
+      else if @rotating
         da = ((new Date) - @base_time) * 0.05
         da = -da unless @right
         (@start_angle + da) % 360
@@ -66,12 +69,12 @@ require.define './devices/sped3', (require, module, exports, __dirname, __filena
         diff = 360 - diff
       @base_time = new Date
       @ttr = diff / 50
-      @adapter.start_rotating @right
+      # @adapter.start_rotating @right
       @rotate_timer = setTimeout (=> @finish_rotation()), (@ttr * 1000)
 
     finish_rotation: ->
       @rotating = false
-      @adapter.stop_rotating @target_angle
+      # @adapter.stop_rotating @target_angle
 
     update_vertices: ->
       vertices = []
@@ -89,19 +92,27 @@ require.define './devices/sped3', (require, module, exports, __dirname, __filena
       @trigger = @emu.mem_trigger @address, (@address + @num_vertices * 2), => @update_vertices()
 
     parse_vertex: (w1, w2) ->
-      x = w1 & 0xFF
-      y = (w1 >> 8) & 0xFF
-      z = w2 & 0xFF
+      x = (w1 & 0xFF) / 0xFF
+      y = ((w1 >> 8) & 0xFF) / 0xFF
+      z = (w2 & 0xFF) / 0xFF
       c = (w2 >> 8) & 3
       i = (w2 >> 10) & 1
-      width = (i + 1) * @base_width
-      color = switch c
-        when 0 then 0x000000
-        when 1 then 0xFF0000
-        when 2 then 0x00FF00
-        when 3 then 0x0000FF
-      [x, y, z, color, width]
+      p = if i then 0xFF else 0xA0
+      c = if c then p << ((3 - i) << 3) else 0
+      [x, y, z, c]
 
     pause: ->
+      return if @paused
+      @paused = true
+      clearTimeout @rotate_timer
+      @pause_angle = @angle()
+
     resume: ->
+      return unless @paused
+      @paused = false
+      @rotate_to_target @pause_angle
+
     halt: ->
+      clearTimeout @rotate_timer
+      @paused = false
+      @rotating = false
