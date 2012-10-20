@@ -8,7 +8,9 @@ Program = require './program'
 Emulator = require './emulator'
 GenericClock = require './devices/clock'
 LEM1802 = require './devices/lem1802'
+SPED3 = require './devices/sped3'
 CanvasAdapter = require './adapters/canvas_adapter'
+SpedAdapter = require './adapters/sped_adapter'
 
 program = null
 emu = null
@@ -37,19 +39,19 @@ states =
     start: -> goto 'running'
     step: -> goto 'paused'; step()
     leave: -> compile_program()
-    
+
   running:
     enter: -> run()
     reset: -> goto 'reset'
     pause: -> goto 'paused'
     leave: -> stop()
-    
+
   paused:
     enter: -> pause()
     reset: -> goto 'reset'
     step: -> step()
     start: -> goto 'running'
-  
+
   done:
     enter: -> done()
     reset: -> goto 'reset'
@@ -73,18 +75,30 @@ init_emulator = ->
   emu.on_fire dcpu_fire
   emu.on_done -> goto 'done'
   attach_clock()
-  attach_monitor()
+  attach_lem()
+  attach_sped()
 
 attach_clock = ->
   emu.attach_device(new GenericClock emu)
 
-attach_monitor = ->
-  canvas = $('canvas')[0]
+attach_lem = ->
+  canvas = $('canvas.lem')[0]
   adapter = new CanvasAdapter
   adapter.attach canvas
   lem = new LEM1802 emu, adapter
   lem.start()
   emu.attach_device lem
+
+attach_sped = ->
+  width = 384
+  height = 288
+  container = $('#sped')
+  container.css {width, height}
+  adapter = new SpedAdapter
+  adapter.init container
+  sped = new SPED3 emu, adapter
+  sped.start()
+  emu.attach_device sped
 
 selected_line = null
 clear_selected_line = ->
@@ -169,7 +183,7 @@ disable_step = ->
 
 disable_run_pause = ->
   $('#run_pause').attr 'disabled', true
-  
+
 enable_run_pause = (mode) ->
   btn = $('#run_pause')
   btn.attr 'disabled', false
@@ -189,7 +203,7 @@ enable_run_pause = (mode) ->
     $('#pause-icon').removeClass 'hidden'
     btn.removeClass 'btn-primary'
     btn.addClass 'btn-danger'
-  
+
 link_registers = ->
   $('.reg-val').each ->
     elem = $(this)
@@ -214,7 +228,7 @@ update_cycles = ->
 pause_on_breakpoints = ->
   emu.on_breakpoint ->
     action 'pause'
-    
+
 update_file = (name) ->
   $.post '/save', type: 'POST', data: {name, body: files[name]}
 

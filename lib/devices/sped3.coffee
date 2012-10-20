@@ -20,6 +20,7 @@ require.define './devices/sped3', (require, module, exports, __dirname, __filena
 
     start: ->
       @adapter.device = this
+      @adapter.render()
 
     send_interrupt: ->
       switch @emu.a.get()
@@ -53,7 +54,7 @@ require.define './devices/sped3', (require, module, exports, __dirname, __filena
       if @paused
         @pause_angle
       else if @rotating
-        da = ((new Date) - @base_time) * 0.05
+        da = ((new Date) - @base_time) * 50 / 1000
         da = -da unless @right
         (@start_angle + da) % 360
       else
@@ -82,7 +83,8 @@ require.define './devices/sped3', (require, module, exports, __dirname, __filena
       for i in [0...@num_vertices]
         w1 = @emu.mem_get addr++
         w2 = @emu.mem_get addr++
-        vertices.push @parse_vertex(w1, w2)
+        v = @parse_vertex(w1, w2)
+        vertices.push v
       @adapter.update_vertices vertices
 
     clear_mem_trigger: ->
@@ -98,14 +100,14 @@ require.define './devices/sped3', (require, module, exports, __dirname, __filena
       c = (w2 >> 8) & 3
       i = (w2 >> 10) & 1
       p = if i then 0xFF else 0xA0
-      c = if c then p << ((3 - i) << 3) else 0
+      c = if c then p << ((3 - c) << 3) else 0
       [x, y, z, c]
 
     pause: ->
       return if @paused
+      @pause_angle = @angle()
       @paused = true
       clearTimeout @rotate_timer
-      @pause_angle = @angle()
 
     resume: ->
       return unless @paused
